@@ -1,0 +1,57 @@
+<!-- Agent call detail -->
+<div class="overflow-y-auto flex-1 p-3 text-sm space-y-3" x-show="state.rightView === 'call' && state.call">
+  <div class="grid grid-cols-2 gap-1 text-xs">
+    <div><span class="text-slate-500">status</span> <span class="font-mono" :class="statusClass(state.call?.status)" x-text="state.call?.status"></span></div>
+    <div><span class="text-slate-500">duration</span> <span x-text="formatMs(state.call?.duration_ms)"></span></div>
+    <div><span class="text-slate-500">model</span> <span class="font-mono" x-text="state.call?.model_name || '—'"></span></div>
+    <div><span class="text-slate-500">tokens</span> <span x-text="(state.call?.prompt_tokens||0) + ' / ' + (state.call?.completion_tokens||0)"></span></div>
+    <div><span class="text-slate-500">confidence</span> <span x-text="state.call?.confidence ?? '—'"></span></div>
+    <div><span class="text-slate-500">retries</span> <span x-text="state.call?.retry_count"></span></div>
+    <div><span class="text-slate-500">triggered_by</span> <span class="font-mono text-[11px]" x-text="state.call?.triggered_by"></span></div>
+    <div><span class="text-slate-500">target</span> <span class="font-mono text-[11px]" x-text="state.call?.target_agent || '—'"></span></div>
+    <div><span class="text-slate-500">parent_call</span> <span x-text="state.call?.parent_call_id || '—'"></span></div>
+    <div><span class="text-slate-500">started</span> <span class="text-[11px]" x-text="state.call?.started_at"></span></div>
+  </div>
+  <div class="text-xs"><span class="text-slate-500">input</span> <span class="font-mono text-[11px]" x-text="state.call?.input_summary"></span></div>
+  <div class="text-xs"><span class="text-slate-500">output</span> <span class="font-mono text-[11px]" x-text="state.call?.output_summary"></span></div>
+
+  <div x-show="state.call?.error_message" class="bg-rose-50 border border-rose-200 rounded p-2 text-xs">
+    <div class="font-semibold text-rose-700" x-text="state.call?.error_type"></div>
+    <pre class="wrap text-rose-900 mt-1" x-text="state.call?.error_message"></pre>
+  </div>
+
+  <details open class="border rounded">
+    <summary class="cursor-pointer px-2 py-1 text-xs font-semibold uppercase text-slate-500 bg-slate-50">system_prompt</summary>
+    <pre class="wrap text-xs p-2 bg-slate-50/30" x-text="state.call?.system_prompt"></pre>
+  </details>
+  <details open class="border rounded">
+    <summary class="cursor-pointer px-2 py-1 text-xs font-semibold uppercase text-slate-500 bg-slate-50">user_prompt</summary>
+    <pre class="wrap text-xs p-2 bg-slate-50/30" x-text="state.call?.user_prompt"></pre>
+  </details>
+  <details class="border rounded">
+    <summary class="cursor-pointer px-2 py-1 text-xs font-semibold uppercase text-slate-500 bg-slate-50">raw_response</summary>
+    <pre class="wrap text-xs p-2 bg-slate-50/30" x-text="state.call?.raw_response"></pre>
+  </details>
+  <details open class="border rounded">
+    <summary class="cursor-pointer px-2 py-1 text-xs font-semibold uppercase text-slate-500 bg-slate-50">parsed_output</summary>
+    <pre class="wrap text-xs p-2 bg-slate-50/30" x-text="prettyJson(state.call?.parsed_output)"></pre>
+  </details>
+
+  <div x-show="state.mutations?.forCall?.length">
+    <div class="text-[11px] font-semibold uppercase text-slate-500 mt-2 mb-1">Mutations from this call</div>
+    <table class="w-full text-xs border-t border-slate-200">
+      <thead class="text-left text-slate-500"><tr><th class="py-1">kind</th><th>target</th><th>conf</th><th>parent</th><th>reason</th></tr></thead>
+      <tbody class="divide-y divide-slate-100">
+        <template x-for="m in state.mutations?.forCall" :key="m.id">
+          <tr :class="m.parent_mutation_id ? 'pl-4 bg-slate-50/50' : ''">
+            <td class="py-1 font-mono text-[11px]" x-text="m.kind"></td>
+            <td class="font-mono text-[11px]" x-text="m.target_kind + ':' + m.target_id"></td>
+            <td x-text="m.confidence == null ? '—' : m.confidence"></td>
+            <td class="text-slate-500" x-text="m.parent_mutation_id || ''"></td>
+            <td class="text-slate-600 truncate max-w-[14rem]" :title="m.reason" x-text="m.reason || ''"></td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+  </div>
+</div>

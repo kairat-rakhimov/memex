@@ -1,0 +1,89 @@
+<!-- Build overview (when no round selected, overview view active) -->
+<div x-show="state.middleView === 'overview' && !state.roundId && state.build" class="overflow-y-auto p-3 text-sm space-y-3 flex-1">
+  <div class="grid grid-cols-2 gap-2 text-xs">
+    <div><span class="text-slate-500">query</span> <span class="font-medium" x-text="state.build?.base_query"></span></div>
+    <div><span class="text-slate-500">stop_reason</span> <span x-text="state.build?.stop_reason || '—'"></span></div>
+    <div><span class="text-slate-500">started</span> <span x-text="state.build?.started_at"></span></div>
+    <div><span class="text-slate-500">finished</span> <span x-text="state.build?.finished_at || 'running'"></span></div>
+    <div><span class="text-slate-500">rounds</span> <span x-text="state.build?.rounds_completed"></span></div>
+    <div><span class="text-slate-500">docs</span> <span x-text="state.build?.total_docs"></span></div>
+    <div><span class="text-slate-500">entities</span> <span x-text="state.build?.total_entities"></span></div>
+    <div><span class="text-slate-500">relations</span> <span x-text="state.build?.total_relations"></span></div>
+    <div><span class="text-slate-500">schema</span> <span x-text="(state.build?.schema_entity_types||0) + 'e / ' + (state.build?.schema_relation_types||0) + 'r'"></span></div>
+    <div><span class="text-slate-500">tokens</span> <span x-text="(state.build?.total_prompt_tokens||0) + ' prompt / ' + (state.build?.total_completion_tokens||0) + ' completion'"></span></div>
+  </div>
+
+  <div>
+    <div class="text-xs font-semibold uppercase text-slate-500 mt-3 mb-1">Rounds timeline</div>
+    <table class="w-full text-xs border-t border-slate-200">
+      <thead class="text-left text-slate-500">
+        <tr><th class="py-1">#</th><th>dur</th><th>fetched/skip/fail</th><th>Δents</th><th>Δrels</th><th>tokens</th><th>stop</th></tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        <template x-for="r in state.rounds" :key="r.id">
+          <tr class="hover:bg-slate-50 cursor-pointer" @click="selectRound(r.id)">
+            <td class="py-1 font-medium" x-text="r.round_number"></td>
+            <td x-text="formatDur(r.duration_seconds)"></td>
+            <td x-text="(r.docs_fetched||0) + ' / ' + (r.docs_skipped||0) + ' / ' + (r.docs_failed||0)"></td>
+            <td x-text="(((r.entities_after||0)-(r.entities_before||0))>=0?'+':'') + ((r.entities_after||0)-(r.entities_before||0))"></td>
+            <td x-text="(((r.relations_after||0)-(r.relations_before||0))>=0?'+':'') + ((r.relations_after||0)-(r.relations_before||0))"></td>
+            <td x-text="(r.prompt_tokens||0) + '/' + (r.completion_tokens||0)"></td>
+            <td x-text="r.stop_criterion_fired || ''"></td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+  </div>
+
+  <div x-show="state.schemaChanges?.length">
+    <div class="text-xs font-semibold uppercase text-slate-500 mt-3 mb-1">Schema evolution</div>
+    <table class="w-full text-xs border-t border-slate-200">
+      <thead class="text-left text-slate-500"><tr><th class="py-1">round</th><th>event</th><th>kind</th><th>name</th><th>reason</th></tr></thead>
+      <tbody class="divide-y divide-slate-100">
+        <template x-for="(s, i) in state.schemaChanges" :key="i">
+          <tr>
+            <td class="py-1" x-text="s.round_number"></td>
+            <td>
+              <span :class="{
+                  'text-emerald-600': s.event==='accepted',
+                  'text-rose-600': s.event==='rejected',
+                  'text-slate-500': s.event==='proposed',
+                }" class="font-mono text-[11px]" x-text="s.event"></span>
+            </td>
+            <td class="font-mono text-[11px]" x-text="s.type_kind"></td>
+            <td class="font-mono text-[11px]" x-text="s.name"></td>
+            <td class="text-slate-600" x-text="s.decision_reason || s.rationale || ''"></td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+  </div>
+
+  <div x-show="state.mutations?.byRound?.length">
+    <div class="text-xs font-semibold uppercase text-slate-500 mt-3 mb-1">Mutations per round</div>
+    <table class="w-full text-xs border-t border-slate-200">
+      <thead class="text-left text-slate-500"><tr><th class="py-1">round</th><th>kind</th><th>count</th></tr></thead>
+      <tbody class="divide-y divide-slate-100">
+        <template x-for="(m, i) in state.mutations?.byRound" :key="i">
+          <tr>
+            <td class="py-1" x-text="m.round"></td>
+            <td class="font-mono text-[11px]" x-text="m.kind"></td>
+            <td x-text="m.n"></td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+  </div>
+
+  <div x-show="state.topEntities?.length">
+    <div class="text-xs font-semibold uppercase text-slate-500 mt-3 mb-1">Top entities</div>
+    <table class="w-full text-xs border-t border-slate-200">
+      <thead class="text-left text-slate-500"><tr><th class="py-1">name</th><th>type</th><th>mentions</th><th>degree</th></tr></thead>
+      <tbody class="divide-y divide-slate-100">
+        <template x-for="(e, i) in state.topEntities" :key="i">
+          <tr><td class="py-1 font-medium" x-text="e.canonical_name"></td><td x-text="e.entity_type"></td><td x-text="e.mentions"></td><td x-text="e.degree"></td></tr>
+        </template>
+      </tbody>
+    </table>
+  </div>
+</div>

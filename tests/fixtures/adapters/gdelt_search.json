@@ -1,0 +1,26 @@
+{
+  "articles": [
+    {
+      "url": "https://example.com/hydrogen-news?utm_source=foo#section",
+      "url_mobile": "",
+      "title": "UAE announces hydrogen strategy",
+      "seendate": "20260315T120000Z",
+      "socialimage": "",
+      "domain": "example.com",
+      "language": "English",
+      "sourcecountry": "United Arab Emirates",
+      "tone": "2.5"
+    },
+    {
+      "url": "https://news.example.org/path/to/article",
+      "url_mobile": "",
+      "title": "PEM electrolyzer breakthrough",
+      "seendate": "20260420T080000Z",
+      "socialimage": "",
+      "domain": "news.example.org",
+      "language": "English",
+      "sourcecountry": "United States",
+      "tone": "1.8"
+    }
+  ]
+}

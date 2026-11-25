@@ -1,0 +1,18 @@
+{
+  "input": {
+    "task": "build",
+    "query": "green hydrogen production",
+    "max_rounds": 1,
+    "max_docs_per_round": 1,
+    "fetch": {
+      "arxiv": {
+        "max_attempts": 1,
+        "timeout": 20
+      },
+      "gdelt": {
+        "max_attempts": 1,
+        "timeout": 15
+      }
+    }
+  }
+}

@@ -1,0 +1,88 @@
+<!-- Entity detail (from graph node click) -->
+<div x-show="state.rightView === 'entity' && state.entity" class="overflow-y-auto flex-1 p-3 text-sm space-y-3">
+  <div class="grid grid-cols-2 gap-1 text-xs">
+    <div><span class="text-slate-500">type</span> <span class="font-mono" x-text="state.entity?.entity_type || '—'"></span></div>
+    <div><span class="text-slate-500">mentions</span> <span x-text="state.entity?.mentions"></span></div>
+    <div><span class="text-slate-500">degree</span> <span x-text="state.entity?.degree"></span></div>
+    <div><span class="text-slate-500">first/last round</span> <span x-text="(state.entity?.first_seen_round ?? '—') + ' / ' + (state.entity?.last_seen_round ?? '—')"></span></div>
+  </div>
+
+  <div x-show="state.entity?.outgoing?.length">
+    <div class="text-[11px] font-semibold uppercase text-slate-500 mt-2 mb-1">Outgoing (top 25)</div>
+    <table class="w-full text-xs border-t border-slate-200">
+      <thead class="text-left text-slate-500"><tr><th class="py-1">predicate</th><th>→ object</th><th>docs</th></tr></thead>
+      <tbody class="divide-y divide-slate-100">
+        <template x-for="(r, i) in state.entity?.outgoing" :key="i">
+          <tr class="hover:bg-slate-50 cursor-pointer" @click="focusGraphNode(r.object_entity_id)">
+            <td class="py-1 font-mono text-[11px]" x-text="r.predicate"></td>
+            <td class="font-medium" x-text="r.object_name"></td>
+            <td x-text="r.provenance_count"></td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+  </div>
+
+  <div x-show="state.entity?.incoming?.length">
+    <div class="text-[11px] font-semibold uppercase text-slate-500 mt-2 mb-1">Incoming (top 25)</div>
+    <table class="w-full text-xs border-t border-slate-200">
+      <thead class="text-left text-slate-500"><tr><th class="py-1">predicate</th><th>← subject</th><th>docs</th></tr></thead>
+      <tbody class="divide-y divide-slate-100">
+        <template x-for="(r, i) in state.entity?.incoming" :key="i">
+          <tr class="hover:bg-slate-50 cursor-pointer" @click="focusGraphNode(r.subject_entity_id)">
+            <td class="py-1 font-mono text-[11px]" x-text="r.predicate"></td>
+            <td class="font-medium" x-text="r.subject_name"></td>
+            <td x-text="r.provenance_count"></td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+  </div>
+
+  <div x-show="state.entity?.properties?.length">
+    <div class="text-[11px] font-semibold uppercase text-slate-500 mt-2 mb-1">Attributes (top 50)</div>
+    <table class="w-full text-xs border-t border-slate-200">
+      <thead class="text-left text-slate-500"><tr><th class="py-1">property</th><th>value</th><th>condition</th><th>docs</th><th>conf</th></tr></thead>
+      <tbody class="divide-y divide-slate-100">
+        <template x-for="(p, i) in state.entity?.properties" :key="i">
+          <tr class="hover:bg-slate-50">
+            <td class="py-1 font-mono text-[11px]" x-text="p.property"></td>
+            <td class="font-medium">
+              <span x-text="p.value_raw"></span>
+              <span x-show="p.unit" class="text-slate-500" x-text="' ' + p.unit"></span>
+            </td>
+            <td class="text-slate-500 text-[11px] truncate max-w-[8rem]" :title="p.condition" x-text="p.condition || '—'"></td>
+            <td x-text="p.provenance_count"></td>
+            <td x-text="p.avg_confidence == null ? '—' : p.avg_confidence.toFixed(2)"></td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+  </div>
+
+  <div x-show="state.entity?.source_doc_ids?.length">
+    <div class="text-[11px] font-semibold uppercase text-slate-500 mt-2 mb-1">Source doc_ids</div>
+    <div class="space-y-0.5 font-mono text-[11px]">
+      <template x-for="doc_id in state.entity?.source_doc_ids" :key="doc_id">
+        <div class="text-slate-700" x-text="doc_id"></div>
+      </template>
+    </div>
+  </div>
+
+  <div x-show="state.mutations?.forTarget?.length">
+    <div class="text-[11px] font-semibold uppercase text-slate-500 mt-3 mb-1">Mutation history</div>
+    <table class="w-full text-xs border-t border-slate-200">
+      <thead class="text-left text-slate-500"><tr><th class="py-1">round</th><th>kind</th><th>conf</th><th>reason</th></tr></thead>
+      <tbody class="divide-y divide-slate-100">
+        <template x-for="m in state.mutations?.forTarget" :key="m.id">
+          <tr class="hover:bg-slate-50 cursor-pointer" @click="m.agent_call_id && selectCall(m.agent_call_id)">
+            <td class="py-1" x-text="m.round ?? '—'"></td>
+            <td class="font-mono text-[11px]" x-text="m.kind"></td>
+            <td x-text="m.confidence == null ? '—' : m.confidence"></td>
+            <td class="text-slate-600" x-text="m.reason || ''"></td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+  </div>
+</div>

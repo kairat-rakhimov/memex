@@ -1,0 +1,7 @@
+{
+  "input": {
+    "task": "chat",
+    "kg_id": "green-hydrogen",
+    "question": "What drives down the levelised cost of green hydrogen, and which of those factors are contested in the sources?"
+  }
+}

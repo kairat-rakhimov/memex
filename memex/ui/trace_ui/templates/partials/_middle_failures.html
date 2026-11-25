@@ -1,0 +1,18 @@
+<!-- Failures view -->
+<div x-show="state.middleView === 'overview' && state.showFailures" class="overflow-y-auto p-3 text-sm flex-1">
+  <div class="text-[11px] font-semibold uppercase text-slate-500 mb-1">Failures + sample_mode</div>
+  <table class="w-full text-xs border-t border-slate-200">
+    <thead class="text-left text-slate-500"><tr><th class="py-1">call</th><th>round</th><th>agent</th><th>status</th><th>error</th></tr></thead>
+    <tbody class="divide-y divide-slate-100">
+      <template x-for="f in state.failures" :key="f.id">
+        <tr class="cursor-pointer hover:bg-slate-50" @click="selectCall(f.id)">
+          <td class="py-1 font-medium" x-text="f.id"></td>
+          <td x-text="f.round_number"></td>
+          <td x-text="f.agent_name"></td>
+          <td><span class="text-[11px] font-mono" :class="statusClass(f.status)" x-text="f.status"></span></td>
+          <td class="text-slate-600 truncate max-w-[24rem]" :title="(f.error_type||'')+': '+(f.error_message||'')" x-text="(f.error_type||'') + (f.error_message ? (': ' + f.error_message) : '')"></td>
+        </tr>
+      </template>
+    </tbody>
+  </table>
+</div>

@@ -1,0 +1,9 @@
+{
+  "input": {
+    "task": "hypothesize",
+    "kg_id": "green-hydrogen",
+    "query": "green hydrogen production",
+    "seed_type": "attribute_contested",
+    "top_n": 8
+  }
+}

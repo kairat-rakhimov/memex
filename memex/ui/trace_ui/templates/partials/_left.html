@@ -1,0 +1,47 @@
+<!-- LEFT: builds + rounds nav -->
+<aside class="col-span-3 bg-white rounded shadow-sm flex flex-col min-h-0">
+  <div class="px-3 py-2 border-b text-xs font-semibold uppercase text-slate-500">
+    Builds
+  </div>
+  <div class="overflow-y-auto flex-1 divide-y">
+    <template x-for="b in state.builds" :key="b.id">
+      <div>
+        <button
+          @click="selectBuild(b.id)"
+          :class="state.buildId === b.id ? 'bg-indigo-50 border-l-4 border-indigo-500' : 'hover:bg-slate-50'"
+          class="w-full text-left px-3 py-2 text-sm"
+        >
+          <div class="flex justify-between items-baseline">
+            <span class="font-medium" x-text="'#' + b.id"></span>
+            <span class="text-[10px] uppercase"
+                  :class="b.sample_mode ? 'text-amber-600' : 'text-emerald-600'"
+                  x-text="b.sample_mode ? 'sample' : 'live'"></span>
+          </div>
+          <div class="text-xs text-slate-600 truncate" x-text="b.base_query"></div>
+          <div class="text-[11px] text-slate-400">
+            <span x-text="b.rounds_completed + ' rounds · ' + b.total_docs + ' docs · ' + b.total_entities + ' ents'"></span>
+          </div>
+          <div class="text-[11px] text-slate-400" x-text="b.stop_reason || 'running'"></div>
+        </button>
+        <template x-if="state.buildId === b.id">
+          <div class="bg-indigo-50/50 pl-6 pr-3 pb-2">
+            <div class="text-[10px] uppercase text-slate-500 pt-1 pb-1">Rounds</div>
+            <template x-for="r in state.rounds" :key="r.id">
+              <button
+                @click="selectRound(r.id)"
+                :class="state.roundId === r.id ? 'bg-white shadow-sm' : 'hover:bg-white/60'"
+                class="block w-full text-left text-xs px-2 py-1 rounded mb-1"
+              >
+                <span class="font-semibold" x-text="'round ' + r.round_number"></span>
+                <span class="text-slate-500" x-text="formatDur(r.duration_seconds) + ' · +' + ((r.entities_after||0)-(r.entities_before||0)) + ' ents · +' + ((r.relations_after||0)-(r.relations_before||0)) + ' rels'"></span>
+              </button>
+            </template>
+          </div>
+        </template>
+      </div>
+    </template>
+    <div x-show="!state.builds.length" class="px-3 py-6 text-sm text-slate-500">
+      No builds for this kg_id.
+    </div>
+  </div>
+</aside>

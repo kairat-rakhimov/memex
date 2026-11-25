@@ -1,0 +1,13 @@
+{
+  "batchcomplete": "",
+  "query": {
+    "pages": {
+      "12345": {
+        "pageid": 12345,
+        "ns": 0,
+        "title": "Hydrogen economy",
+        "extract": "The hydrogen economy is the use of hydrogen as a fuel for transportation, heating, and industrial processes. Production is dominantly by steam methane reforming today, with green hydrogen via electrolysis emerging as the low-carbon alternative."
+      }
+    }
+  }
+}

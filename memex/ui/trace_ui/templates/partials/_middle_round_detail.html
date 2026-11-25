@@ -1,0 +1,58 @@
+<!-- Round detail -->
+<div x-show="state.middleView === 'overview' && state.roundId" class="overflow-y-auto p-3 text-sm space-y-2 flex-1">
+  <div class="text-xs grid grid-cols-3 gap-1" x-show="currentRound()">
+    <div><span class="text-slate-500">duration</span> <span x-text="formatDur(currentRound()?.duration_seconds)"></span></div>
+    <div><span class="text-slate-500">tokens (p/c)</span> <span x-text="(currentRound()?.prompt_tokens||0) + ' / ' + (currentRound()?.completion_tokens||0)"></span></div>
+    <div><span class="text-slate-500">stop</span> <span x-text="currentRound()?.stop_criterion_fired || '—'"></span></div>
+    <div><span class="text-slate-500">entities</span> <span x-text="(currentRound()?.entities_before)+' → '+(currentRound()?.entities_after)"></span></div>
+    <div><span class="text-slate-500">relations</span> <span x-text="(currentRound()?.relations_before)+' → '+(currentRound()?.relations_after)"></span></div>
+    <div><span class="text-slate-500">docs</span> <span x-text="(currentRound()?.docs_fetched)+' fetched / '+(currentRound()?.docs_skipped)+' skipped / '+(currentRound()?.docs_failed)+' failed'"></span></div>
+  </div>
+
+  <!-- Mutations this round — surfaces kg_mutations rollup at the
+       view a user lands on after clicking a round. Without this,
+       mutations are only visible from build-overview (collapsed
+       once a round is selected) or per-call (one click deeper). -->
+  <div x-show="roundMutationSummary().total > 0" class="text-[11px] mt-2 p-2 rounded bg-indigo-50/60 border border-indigo-100">
+    <span class="font-semibold uppercase text-indigo-700">Mutations this round:</span>
+    <span class="text-indigo-900" x-text="roundMutationSummary().total"></span>
+    <span class="text-indigo-600" x-text="'(' + roundMutationSummary().breakdown + ')'"></span>
+  </div>
+
+  <div class="text-[11px] font-semibold uppercase text-slate-500 mt-2">Agent calls</div>
+  <table class="w-full text-xs border-t border-slate-200">
+    <thead class="text-left text-slate-500"><tr><th class="py-1">#</th><th>agent</th><th>action</th><th>status</th><th>dur</th><th>tokens</th></tr></thead>
+    <tbody class="divide-y divide-slate-100">
+      <template x-for="c in state.calls" :key="c.id">
+        <tr
+          class="cursor-pointer"
+          :class="state.callId === c.id ? 'bg-indigo-50' : 'hover:bg-slate-50'"
+          @click="selectCall(c.id)"
+        >
+          <td class="py-1 text-slate-500" x-text="c.sequence_in_round"></td>
+          <td class="font-medium" x-text="c.agent_name"></td>
+          <td class="font-mono text-[11px] text-slate-600" x-text="c.action"></td>
+          <td>
+            <span class="text-[11px] font-mono px-1 rounded"
+                  :class="statusClass(c.status)"
+                  x-text="c.status"></span>
+          </td>
+          <td x-text="formatMs(c.duration_ms)"></td>
+          <td x-text="(c.prompt_tokens||0) + '/' + (c.completion_tokens||0)"></td>
+        </tr>
+      </template>
+    </tbody>
+  </table>
+
+  <div x-show="state.fetchedDocs?.length" class="mt-3">
+    <div class="text-[11px] font-semibold uppercase text-slate-500 mb-1">Fetched docs</div>
+    <table class="w-full text-xs border-t border-slate-200">
+      <thead class="text-left text-slate-500"><tr><th class="py-1">source</th><th>outcome</th><th>title</th><th>parse</th><th>chars</th></tr></thead>
+      <tbody class="divide-y divide-slate-100">
+        <template x-for="(d, i) in state.fetchedDocs" :key="i">
+          <tr><td class="py-1" x-text="d.source"></td><td><span class="text-[11px] font-mono" :class="d.outcome==='selected_and_fetched' ? 'text-emerald-600' : 'text-amber-600'" x-text="d.outcome"></span></td><td class="truncate max-w-[18rem]" :title="d.title" x-text="d.title"></td><td x-text="d.parse_method || '—'"></td><td x-text="d.cleaned_text_chars || ''"></td></tr>
+        </template>
+      </tbody>
+    </table>
+  </div>
+</div>

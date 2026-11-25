@@ -1,0 +1,63 @@
+<!-- Relation detail (from graph edge click) -->
+<div x-show="state.rightView === 'relation' && state.relation" class="overflow-y-auto flex-1 p-3 text-sm space-y-3">
+  <div class="flex items-center gap-2 flex-wrap text-sm">
+    <span class="font-medium px-1.5 py-0.5 rounded bg-slate-100 cursor-pointer hover:bg-slate-200"
+          @click="focusGraphNode(state.relation?.subject?.id)"
+          x-text="state.relation?.subject?.canonical_name || ('#' + state.relation?.subject?.id)"></span>
+    <span class="font-mono text-[11px] text-indigo-700" x-text="state.relation?.predicate"></span>
+    <span class="text-slate-400">→</span>
+    <span class="font-medium px-1.5 py-0.5 rounded bg-slate-100 cursor-pointer hover:bg-slate-200"
+          @click="focusGraphNode(state.relation?.object?.id)"
+          x-text="state.relation?.object?.canonical_name || ('#' + state.relation?.object?.id)"></span>
+  </div>
+
+  <div class="grid grid-cols-2 gap-1 text-xs">
+    <div><span class="text-slate-500">subject type</span> <span class="font-mono" x-text="state.relation?.subject?.entity_type || '—'"></span></div>
+    <div><span class="text-slate-500">object type</span> <span class="font-mono" x-text="state.relation?.object?.entity_type || '—'"></span></div>
+    <div><span class="text-slate-500">docs supporting</span> <span x-text="state.relation?.provenance_count"></span></div>
+    <div><span class="text-slate-500">avg confidence</span> <span x-text="state.relation?.avg_confidence == null ? '—' : state.relation?.avg_confidence.toFixed(3)"></span></div>
+    <div><span class="text-slate-500">first/last round</span> <span x-text="(state.relation?.first_round ?? '—') + ' / ' + (state.relation?.last_round ?? '—')"></span></div>
+  </div>
+
+  <div x-show="state.relation?.provenance?.length">
+    <div class="text-[11px] font-semibold uppercase text-slate-500 mt-2 mb-1">Provenance (one row per source)</div>
+    <table class="w-full text-xs border-t border-slate-200">
+      <thead class="text-left text-slate-500"><tr><th class="py-1">round</th><th>doc_id</th><th>conf</th><th>raw predicate</th><th>call</th></tr></thead>
+      <tbody class="divide-y divide-slate-100">
+        <template x-for="p in state.relation?.provenance" :key="p.id">
+          <tr class="hover:bg-slate-50" :class="p.mapped_flag ? '' : 'bg-amber-50/50'">
+            <td class="py-1" x-text="p.round_observed ?? '—'"></td>
+            <td class="font-mono text-[11px] truncate max-w-[10rem]" :title="p.source_doc_id" x-text="p.source_doc_id || '—'"></td>
+            <td x-text="p.mapper_confidence == null ? '—' : p.mapper_confidence"></td>
+            <td class="font-mono text-[11px] text-slate-600 truncate max-w-[9rem]" :title="p.raw_predicate" x-text="p.raw_predicate || '—'"></td>
+            <td>
+              <span x-show="p.agent_call_id" class="text-indigo-600 cursor-pointer hover:underline"
+                    @click="selectCall(p.agent_call_id)" x-text="'#' + p.agent_call_id"></span>
+              <span x-show="!p.agent_call_id" class="text-slate-400">—</span>
+            </td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+    <div x-show="state.relation?.provenance?.some(p => !p.mapped_flag)" class="text-[10px] text-amber-700 mt-1">
+      amber rows: <span class="font-mono">mapped_flag=0</span> (raw surface form, Mapper unmapped)
+    </div>
+  </div>
+
+  <div x-show="state.relation?.mutations?.length">
+    <div class="text-[11px] font-semibold uppercase text-slate-500 mt-3 mb-1">Mutation history</div>
+    <table class="w-full text-xs border-t border-slate-200">
+      <thead class="text-left text-slate-500"><tr><th class="py-1">round</th><th>kind</th><th>conf</th><th>reason</th></tr></thead>
+      <tbody class="divide-y divide-slate-100">
+        <template x-for="m in state.relation?.mutations" :key="m.id">
+          <tr class="hover:bg-slate-50 cursor-pointer" @click="m.agent_call_id && selectCall(m.agent_call_id)">
+            <td class="py-1" x-text="m.round ?? '—'"></td>
+            <td class="font-mono text-[11px]" x-text="m.kind"></td>
+            <td x-text="m.confidence == null ? '—' : m.confidence"></td>
+            <td class="text-slate-600" x-text="m.reason || ''"></td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+  </div>
+</div>

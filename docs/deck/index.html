@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>memex</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0A0E15; --bg-alt:#0C111B; --surface:#131B29; --surface-2:#172234;
+  --line:rgba(120,150,190,.18); --line-2:rgba(120,150,190,.10);
+  --ink:#EAF0F8; --muted:#8C9AB0; --faint:#5E6B80;
+  --accent:#57E6CE; --accent-dim:#2E9C90; --accent-deep:rgba(87,230,206,.12);
+  --back:#FF8A5B; --back-dim:rgba(255,138,91,.14);
+  --display:'Space Grotesk',sans-serif; --sans:'IBM Plex Sans',sans-serif; --mono:'IBM Plex Mono',monospace;
+  --type-brand:158px; --type-title:66px; --type-num:120px; --type-sub:40px;
+  --type-body:32px; --type-small:25px; --type-eyebrow:21px;
+  --pad-x:112px; --pad-top:70px; --pad-bottom:62px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+deck-stage:not(:defined){visibility:hidden}
+deck-stage{background:#000}
+section{background:var(--bg);color:var(--ink);font-family:var(--sans);overflow:hidden}
+.slide{position:absolute;inset:0;display:flex;flex-direction:column;padding:var(--pad-top) var(--pad-x) var(--pad-bottom)}
+
+/* ---- chrome ---- */
+.chrome{display:flex;justify-content:space-between;align-items:flex-start;flex:0 0 auto;z-index:5}
+.eyebrow{display:flex;align-items:center;gap:18px;font-family:var(--mono);font-size:var(--type-eyebrow);letter-spacing:.04em}
+.act{color:var(--accent);font-weight:600;text-transform:uppercase;letter-spacing:.22em;font-size:18px;white-space:nowrap}
+.eyebrow .ttl{color:var(--muted);white-space:nowrap}
+.eyebrow .ttl::before{content:'';display:inline-block;width:26px;height:1px;background:var(--line);vertical-align:middle;margin-right:18px;margin-bottom:5px}
+.idx{font-family:var(--mono);font-size:18px;color:var(--faint);letter-spacing:.1em}
+.idx b{color:var(--accent);font-weight:600}
+.mark{position:absolute;left:var(--pad-x);bottom:46px;font-family:var(--mono);font-size:18px;color:var(--faint);letter-spacing:.12em;z-index:5}
+.mark::before{content:'◆';color:var(--accent);margin-right:10px;font-size:13px}
+
+/* ---- body ---- */
+.body{flex:1;display:flex;min-height:0;z-index:4}
+.h1{font-family:var(--display);font-weight:600;font-size:var(--type-title);line-height:1.02;letter-spacing:-.015em;text-wrap:balance}
+.h1 .em{color:var(--accent)}
+.lede{font-size:var(--type-sub);color:var(--muted);line-height:1.3;font-weight:400;max-width:18ch}
+
+/* bullets — terse, glanceable */
+.bullets{list-style:none;display:flex;flex-direction:column;gap:26px;margin-top:8px}
+.bullets li{display:flex;gap:20px;align-items:baseline;font-size:var(--type-body);line-height:1.28;color:var(--ink);max-width:24ch}
+.bullets li::before{content:'';flex:0 0 auto;width:11px;height:11px;border:2px solid var(--accent);border-radius:50%;transform:translateY(2px)}
+.bullets li b{font-family:var(--mono);font-weight:600;color:var(--accent);font-size:.92em}
+.bullets li .back{color:var(--back);font-weight:600}
+.muted{color:var(--muted)}
+
+/* mono stat figures */
+.stat{font-family:var(--display);font-weight:600;font-size:var(--type-num);line-height:.9;letter-spacing:-.02em;color:var(--ink)}
+.stat .u{font-family:var(--mono);font-size:.26em;color:var(--accent);letter-spacing:.05em;font-weight:500}
+
+/* ---- diagram primitives ---- */
+.node{font-family:var(--mono);font-size:26px;font-weight:500;color:var(--ink);background:var(--surface);
+  border:1.5px solid var(--line);border-radius:14px;padding:22px 30px;white-space:nowrap;text-align:center;position:relative}
+.node .sub{display:block;font-size:16px;color:var(--faint);margin-top:6px;letter-spacing:.02em}
+.node.accent{border-color:var(--accent-dim);box-shadow:0 0 0 1px var(--accent-deep),0 18px 40px -24px rgba(87,230,206,.5)}
+.node.db{border-color:var(--accent);background:linear-gradient(180deg,var(--surface-2),var(--surface));box-shadow:0 0 60px -20px var(--accent)}
+.flow{display:flex;align-items:center;gap:0}
+.conn{flex:1;min-width:46px;height:2px;background:var(--accent-dim);position:relative;margin:0 4px;opacity:.85}
+.conn::after{content:'';position:absolute;right:-2px;top:50%;transform:translateY(-50%);
+  border-left:13px solid var(--accent);border-top:8px solid transparent;border-bottom:8px solid transparent}
+.conn.back{background:var(--back);opacity:.9}
+.conn.back::after{border-left-color:var(--back)}
+.connl{flex:1;min-width:84px;display:flex;align-items:center;position:relative}
+.connl .conn{flex:1;min-width:0;margin:0}
+.connl span{position:absolute;top:-24px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:15px;color:var(--accent);letter-spacing:.04em;white-space:nowrap}
+.connl.back span{color:var(--back)}
+/* query-layer diagram (S12) */
+.qa{font-family:var(--mono);font-size:21px;font-weight:500;color:var(--ink);background:var(--surface);border:1.5px solid var(--accent-dim);border-radius:11px;padding:13px 16px;white-space:nowrap;text-align:center}
+.qa .qs{display:block;font-size:13px;color:var(--faint);margin-top:3px;font-weight:400}
+.qio{font-family:var(--mono);font-size:17px;color:var(--muted);background:var(--bg-alt);border:1px solid var(--line);border-radius:999px;padding:11px 16px;white-space:nowrap}
+.connl.tool span{color:var(--muted);font-size:14px;letter-spacing:.02em}
+.connl.tool span::before{content:'⟨';color:var(--accent-dim);margin-right:3px}
+.connl.tool span::after{content:'⟩';color:var(--accent-dim);margin-left:3px}
+.lane-h{font-family:var(--mono);font-size:18px;color:var(--accent);letter-spacing:.14em;margin-bottom:24px}
+.lane-h .b{color:var(--back)}
+.backarc{position:absolute;left:34px;bottom:12px;height:56px;overflow:visible}
+.chip{font-family:var(--mono);font-size:21px;color:var(--ink);background:var(--surface);
+  border:1.5px solid var(--line);border-radius:11px;padding:15px 18px;white-space:nowrap;text-align:center}
+
+/* shot placeholders */
+.shot{border:2px dashed rgba(87,230,206,.45);border-radius:16px;background:
+  repeating-linear-gradient(135deg,rgba(87,230,206,.04) 0 22px,transparent 22px 44px),var(--bg-alt);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  position:relative;color:var(--accent);text-align:center;padding:34px}
+.shot .tag{position:absolute;top:16px;left:18px;font-family:var(--mono);font-size:15px;color:var(--accent);
+  background:var(--accent-deep);border:1px solid rgba(87,230,206,.3);border-radius:6px;padding:5px 11px;letter-spacing:.04em}
+.shot .ph-icon{width:54px;height:54px;border:2px solid rgba(87,230,206,.5);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:26px}
+.shot .ph-txt{font-family:var(--mono);font-size:21px;color:var(--ink);font-weight:500}
+.shot .ph-sub{font-family:var(--mono);font-size:15px;color:var(--faint)}
+.shot.money{border-color:rgba(255,138,91,.55);background:
+  repeating-linear-gradient(135deg,rgba(255,138,91,.05) 0 22px,transparent 22px 44px),var(--bg-alt);color:var(--back)}
+.shot.money .tag{color:var(--back);background:var(--back-dim);border-color:rgba(255,138,91,.35)}
+.shot.money .ph-icon{border-color:rgba(255,138,91,.55)}
+
+/* full-bleed showcase */
+.slide.bleed{padding:var(--pad-top) var(--pad-x) var(--pad-bottom)}
+.shot-fill{position:absolute;inset:0;z-index:0;border-radius:0;border:none}
+.shot-fill::after{content:'';position:absolute;inset:0;background:
+  linear-gradient(90deg,rgba(8,11,17,.94) 0%,rgba(8,11,17,.72) 42%,rgba(8,11,17,.34) 100%)}
+.bleed .chrome,.bleed .body,.bleed .mark{position:relative;z-index:5}
+.bleed .body{align-items:flex-end}
+.slide.bleed .mark{display:none} /* showcase slides are self-contained; avoids overlay collision */
+/* S5 — hypothesis card deck */
+.hfan{display:flex;align-items:center;justify-content:center;gap:48px}
+.hcard{position:relative;width:436px;height:516px;border-radius:18px;overflow:hidden;background:#15171c;border:1px solid rgba(255,255,255,.14);box-shadow:0 44px 84px -30px rgba(0,0,0,.85)}
+.hcard img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block}
+.hcard::after{content:'';position:absolute;left:0;right:0;bottom:0;height:130px;background:linear-gradient(to bottom, rgba(20,22,27,0), #14161b)}
+.hcard .sc{position:absolute;left:18px;bottom:16px;z-index:2;white-space:nowrap;font-family:var(--mono);font-size:21px;font-weight:600;color:var(--accent);background:rgba(8,11,17,.62);border:1px solid rgba(87,230,206,.42);border-radius:999px;padding:7px 17px}
+.hcard:nth-child(1){transform:rotate(-3deg)}
+.hcard:nth-child(3){transform:rotate(3deg)}
+.adeck{display:flex;align-items:stretch;justify-content:center;gap:44px}
+.adeck .hcard{width:806px;height:548px}
+.adeck .hcard:nth-child(1){transform:rotate(-1.5deg)}
+.adeck .hcard:nth-child(2){transform:rotate(1.5deg)}
+/* S4 cascading answer crops */
+.s4cards{position:absolute;inset:0;z-index:1;overflow:hidden;pointer-events:none}
+.s4card{position:absolute;border-radius:13px;border:1px solid rgba(255,255,255,.16);box-shadow:0 44px 100px -30px rgba(0,0,0,.95);display:block}
+/* S6 native system map */
+.sysrow{display:flex;align-items:flex-start;justify-content:center;gap:26px;width:100%}
+.syscol{display:flex;flex-direction:column}
+.sys-h{font-family:var(--mono);font-size:19px;color:var(--accent);letter-spacing:.13em}
+.sys-sub{font-family:var(--mono);font-size:14px;color:var(--faint);letter-spacing:.03em;margin-top:6px;margin-bottom:22px}
+.plug{display:flex;align-items:center;gap:15px;font-family:var(--mono);font-size:23px;color:var(--ink);background:var(--surface);border:1.5px solid var(--line);border-radius:13px;padding:14px 18px}
+.plug .pi{width:38px;height:38px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--accent-dim);border-radius:9px;color:var(--accent);font-size:17px;font-weight:600}
+.kgcore{position:relative;border-radius:18px;overflow:hidden;border:1px solid rgba(87,230,206,.3);box-shadow:0 0 90px -24px rgba(87,230,206,.5)}
+.kgcore img{display:block;width:100%;height:100%;object-fit:cover}
+.kgcore .lbl{position:absolute;left:0;right:0;bottom:0;padding:46px 22px 18px;background:linear-gradient(to top, rgba(8,11,17,.94), transparent);text-align:center}
+.sysarrow{display:flex;flex-direction:column;align-items:center;gap:8px;flex:0 0 auto;align-self:center}
+.sysarrow .lab{font-family:var(--mono);font-size:15px;color:var(--accent);letter-spacing:.06em}
+.qcard{background:var(--bg-alt);border:1px solid var(--line-2);border-radius:16px;padding:16px 18px;display:flex;align-items:center;gap:16px}
+.qcard img{width:96px;height:96px;flex:0 0 auto;border-radius:12px;border:1px solid var(--line-2)}
+.qcard .qt{font-family:var(--display);font-weight:600;font-size:24px;color:var(--ink);line-height:1.1}
+.qcard .qd{font-family:var(--mono);font-size:14px;color:var(--muted);margin-top:7px;line-height:1.4}
+/* S11 resolver panels */
+.vpanel{flex:1;background:var(--bg-alt);border:1px solid var(--line-2);border-radius:18px;padding:30px 32px;display:flex;flex-direction:column;gap:24px}
+.vlabel{font-family:var(--mono);font-size:19px;color:var(--accent);letter-spacing:.12em;white-space:nowrap}
+.vlabel span{color:var(--faint);letter-spacing:.02em}
+.vrow{display:flex;align-items:center;gap:16px}
+.vforms{flex:1;display:flex;flex-wrap:wrap;gap:8px}
+.vform{font-family:var(--mono);font-size:18px;color:var(--muted);background:var(--surface);border:1px solid var(--line-2);border-radius:8px;padding:8px 12px;white-space:nowrap}
+.varrow{flex:0 0 auto;color:var(--accent-dim);font-size:26px;line-height:1}
+.vcanon{flex:0 0 auto;font-family:var(--mono);font-size:22px;font-weight:500;color:var(--accent);background:var(--surface-2);border:1.5px solid var(--accent-dim);border-radius:11px;padding:12px 18px;white-space:nowrap;box-shadow:0 0 0 1px var(--accent-deep)}
+/* S13/S14 trace panels */
+.tpanel{background:var(--bg-alt);border:1px solid var(--line-2);border-radius:16px;padding:24px 26px;display:flex;flex-direction:column;gap:13px}
+.tpanel.money{border-color:rgba(255,138,91,.45);box-shadow:0 0 0 1px rgba(255,138,91,.12),0 24px 60px -34px rgba(255,138,91,.4)}
+.thead{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.ttitle{font-family:var(--display);font-weight:600;font-size:25px;color:var(--ink);white-space:nowrap}
+.ttag{font-family:var(--mono);font-size:14px;color:var(--accent);white-space:nowrap}
+.tpanel.money .ttag{color:var(--back)}
+.tsub{font-family:var(--sans);font-size:18px;color:var(--muted);line-height:1.32}
+.tcode{font-family:var(--mono);font-size:13.5px;color:var(--faint);background:var(--surface);border:1px solid var(--line-2);border-radius:9px;padding:13px 14px;line-height:1.75}
+.tcode b{color:var(--accent);font-weight:500}
+.tnote{font-family:var(--mono);font-size:13.5px;color:var(--faint);line-height:1.4}
+.tbig{font-family:var(--display);font-weight:600;font-size:34px;color:var(--ink);line-height:1}
+.tbig .u{font-family:var(--mono);font-size:16px;color:var(--accent);font-weight:500}
+.tbig.bk .n{color:var(--back)}
+.tverd{font-family:var(--mono);font-size:14px;color:var(--muted);line-height:1.5;background:var(--surface);border:1px solid var(--line-2);border-radius:9px;padding:11px 13px}
+.tverd .x{color:var(--back);font-weight:600}
+.trej{display:flex;align-items:flex-start;gap:9px;font-family:var(--mono);font-size:14px;color:var(--back);background:var(--back-dim);border:1px solid rgba(255,138,91,.4);border-radius:9px;padding:10px 12px;line-height:1.4}
+.trej svg{flex:0 0 auto;margin-top:2px}
+.tscore{font-family:var(--mono);font-size:14px;color:var(--muted);line-height:1.7}
+.tscore b{color:var(--accent);font-weight:500}
+/* S1 hero image */
+.s1img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+.s1scrim{position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(to bottom, rgba(8,11,17,.62) 0%, rgba(8,11,17,0) 16%, rgba(8,11,17,0) 52%, rgba(8,11,17,.55) 80%, rgba(8,11,17,.92) 100%), linear-gradient(to right, rgba(8,11,17,.6) 0%, rgba(8,11,17,0) 46%)}
+
+/* return-arrow badge */
+.return-flag{display:inline-flex;align-items:center;gap:12px;font-family:var(--mono);font-size:21px;
+  color:var(--back);background:var(--back-dim);border:1.5px solid rgba(255,138,91,.4);border-radius:999px;padding:12px 22px;font-weight:500}
+.return-flag svg{display:block}
+
+/* badges */
+.badges{display:flex;gap:20px;flex-wrap:wrap}
+.badge{font-family:var(--mono);font-size:24px;color:var(--accent);border:1.5px solid var(--accent-dim);
+  border-radius:12px;padding:16px 24px;background:var(--accent-deep)}
+
+/* entrance animations intentionally omitted — static slides export cleanly
+   to screenshots / PDF / PPTX */
+</style>
+</head>
+<body>
+<deck-stage width="1920" height="1080">
+
+  <!-- ============ The dream ============ -->
+  <section data-label="The dream">
+    <div class="slide bleed">
+      <img class="s1img" src="assets/hook-1945.jpg" alt="1945 — Vannevar Bush imagines the memex in 'As We May Think'">
+      <div class="s1scrim"></div>
+      <header class="chrome" style="display:none">
+        <div class="eyebrow" style="text-shadow:0 2px 12px rgba(0,0,0,.85)"><span class="act">Why</span><span class="ttl">The dream</span></div>
+        <div class="idx" style="text-shadow:0 2px 12px rgba(0,0,0,.85)"><b>01</b> / 15</div>
+      </header>
+      <div class="body" style="flex-direction:column;justify-content:flex-end;align-items:flex-start;gap:22px">
+        <h1 style="font-family:var(--display);font-weight:700;font-size:124px;line-height:.9;letter-spacing:-.03em;color:#fff;text-shadow:0 4px 34px rgba(0,0,0,.65)">memex</h1>
+        <div style="font-family:var(--mono);font-size:21px;color:#d2d9e4;letter-spacing:.08em;white-space:nowrap;text-shadow:0 2px 14px rgba(0,0,0,.8)">Multi-agent knowledge graphs for hypothesis generation</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ The mountain that keeps growing ============ -->
+  <section data-label="The mountain that keeps growing">
+    <div class="slide bleed">
+      <img class="s1img" src="assets/mountain-1945.jpg" alt="A researcher facing an endless, glowing mountain of connected papers">
+      <div class="s1scrim" style="background:linear-gradient(to right, rgba(8,11,17,.93) 0%, rgba(8,11,17,.58) 32%, rgba(8,11,17,0) 64%), linear-gradient(to top, rgba(8,11,17,.82) 0%, rgba(8,11,17,0) 44%)"></div>
+      <header class="chrome">
+        <div class="eyebrow" style="text-shadow:0 2px 12px rgba(0,0,0,.85)"><span class="act">Why</span><span class="ttl">The mountain that keeps growing</span></div>
+        <div class="idx" style="text-shadow:0 2px 12px rgba(0,0,0,.85)"><b>02</b> / 15</div>
+      </header>
+      <div class="body" style="flex-direction:column;justify-content:flex-end;align-items:flex-start;gap:34px">
+        <h1 class="h1" style="max-width:17ch;text-shadow:0 3px 26px rgba(0,0,0,.75)">A mountain of findings —<br><span class="em">more than anyone can read.</span></h1>
+        <ul class="bullets" style="gap:22px;text-shadow:0 2px 16px rgba(0,0,0,.85)">
+          <li style="max-width:32ch"><span>Bush imagined a machine to hold it all and walk <b>associative trails</b></span></li>
+          <li style="max-width:32ch"><span>He never built it</span></li>
+          <li style="max-width:32ch"><span><span class="muted">80 years on, it</span> <b>keeps growing</b></span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ It harvests knowledge ============ -->
+  <section data-label="It harvests knowledge">
+    <div class="slide bleed">
+      <img class="s1img" src="assets/kg-graph.jpg" alt="memex trace UI — the knowledge graph built for green hydrogen, with an entity selected showing its outgoing and incoming relations">
+      <div class="s1scrim" style="background:linear-gradient(to bottom, rgba(8,11,17,.7) 0%, rgba(8,11,17,0) 11%), linear-gradient(to top, rgba(8,11,17,.96) 0%, rgba(8,11,17,.72) 26%, rgba(8,11,17,.2) 48%, rgba(8,11,17,0) 66%), linear-gradient(to right, rgba(8,11,17,.82) 0%, rgba(8,11,17,.32) 34%, rgba(8,11,17,0) 62%)"></div>
+      <header class="chrome">
+        <div class="eyebrow" style="text-shadow:0 2px 12px rgba(0,0,0,.85)"><span class="act">What</span><span class="ttl">It harvests knowledge</span></div>
+        <div class="idx" style="text-shadow:0 2px 12px rgba(0,0,0,.85)"><b>03</b> / 15</div>
+      </header>
+      <div class="body" style="flex-direction:column;justify-content:flex-end;align-items:flex-start;gap:40px;text-shadow:0 2px 18px rgba(0,0,0,.9)">
+        <h1 class="h1" style="max-width:16ch">Point it at a topic.<br>It reads <span class="em">until saturated.</span></h1>
+        <div style="display:flex;align-items:flex-end;gap:64px">
+          <div class="anim"><div class="stat">88<span class="u"> documents</span></div></div>
+          <div style="font-family:var(--mono);font-size:46px;color:var(--accent-dim)">→</div>
+          <div class="anim2"><div class="stat">11.3k<span class="u"> entities</span></div></div>
+          <div class="anim3" style="display:flex;flex-direction:column;gap:14px;padding-bottom:8px">
+            <div style="font-family:var(--mono);font-size:28px;color:var(--ink)"><b style="color:var(--accent)">15k</b> relations</div>
+            <div style="font-family:var(--mono);font-size:28px;color:var(--ink)"><b style="color:var(--accent)">7.7k</b> attributes</div>
+            <div style="font-family:var(--mono);font-size:28px;color:var(--ink)"><b style="color:var(--accent)">24</b> self-directed rounds</div>
+          </div>
+        </div>
+      </div>
+      <footer class="mark">memex</footer>
+    </div>
+  </section>
+
+  <!-- ============ It answers, grounded ============ -->
+  <section data-label="It answers, grounded">
+    <div class="slide">
+      <div class="s4cards">
+        <img class="s4card" src="assets/ans-evidence.jpg" alt="Evidence table — each fact with its source, corroboration count and confidence score" style="left:1330px;top:-74px;width:540px;height:auto;transform:rotate(3deg)">
+        <img class="s4card" src="assets/ans-sec2.jpg" alt="Answer section 2 — electrolyser and other capital costs (CAPEX) and learning rates" style="left:1140px;top:74px;width:540px;height:auto;transform:rotate(-2deg)">
+        <img class="s4card" src="assets/ans-sec1.jpg" alt="Answer section 1 — electricity price and renewable power as the dominant LCOH driver" style="left:948px;top:236px;width:540px;height:auto;transform:rotate(2.4deg)">
+        <img class="s4card" src="assets/ans-summary.jpg" alt="Answer summary — what drives LCOH down (supported across sources) and what is contested" style="left:744px;top:404px;width:556px;height:auto;transform:rotate(-1.5deg);border-color:rgba(87,230,206,.4);box-shadow:0 44px 110px -28px rgba(0,0,0,.97),0 0 0 1px rgba(87,230,206,.14)">
+      </div>
+      <header class="chrome">
+        <div class="eyebrow"><span class="act">What</span><span class="ttl">It answers, grounded</span></div>
+        <div class="idx"><b>04</b> / 15</div>
+      </header>
+      <div class="body" style="position:relative;z-index:2;flex-direction:column;justify-content:center;align-items:flex-start;gap:30px">
+        <div style="font-family:var(--mono);font-size:20px;color:var(--accent);letter-spacing:.2em">ASKED</div>
+        <h1 class="h1" style="font-size:46px;line-height:1.14;max-width:600px">What drives down the <span class="em">levelised cost of green hydrogen</span> — and which factors are <span class="em">contested?</span></h1>
+        <p style="font-family:var(--mono);font-size:21px;color:var(--muted);line-height:1.5;max-width:30ch">Answered only from the corpus — <span style="color:var(--accent)">every claim cited</span>, traced to a source sentence, and grounding-checked.</p>
+      </div>
+      <footer class="mark">memex</footer>
+    </div>
+  </section>
+
+  <!-- ============ It proposes hypotheses ============ -->
+  <section data-label="It proposes hypotheses">
+    <div class="slide">
+      <div class="s4cards">
+        <img class="s4card" src="assets/hyp-heat.jpg" alt="Hypothesis H3 — maximizing green hydrogen could raise medium-term gas use for heat — score 0.84" style="left:690px;top:8px;width:540px;height:auto;transform:rotate(-2deg)">
+        <img class="s4card" src="assets/hyp-fleets.jpg" alt="Hypothesis H2 — electrolyser fleets can scale faster than proportionally — score 0.85" style="left:820px;top:114px;width:540px;height:auto;transform:rotate(2.4deg)">
+        <img class="s4card" src="assets/hyp-segments.jpg" alt="Hypothesis H1 — prioritizing hard-to-electrify segments over hydrogen passenger cars — score 0.88" style="left:950px;top:220px;width:540px;height:auto;transform:rotate(-1.6deg)">
+        <img class="s4card" src="assets/hyp-amd-evidence.jpg" alt="Grounding for the acid-mine-drainage hypothesis — each claim traced to a source sentence with corroboration counts" style="left:1080px;top:326px;width:540px;height:auto;transform:rotate(2.2deg)">
+        <img class="s4card" src="assets/hyp-amd.jpg" alt="Top hypothesis — acid-mine drainage as an electrolyte and remediation target — score 0.89, with novelty, plausibility, support and structure scores" style="left:1210px;top:432px;width:556px;height:auto;transform:rotate(-1.5deg);border-color:rgba(87,230,206,.4);box-shadow:0 44px 110px -28px rgba(0,0,0,.97),0 0 0 1px rgba(87,230,206,.14)">
+      </div>
+      <header class="chrome">
+        <div class="eyebrow"><span class="act">What</span><span class="ttl">It proposes hypotheses</span></div>
+        <div class="idx"><b>05</b> / 15</div>
+      </header>
+      <div class="body" style="position:relative;z-index:2;flex-direction:column;justify-content:center;align-items:flex-start;gap:30px">
+        <div style="font-family:var(--mono);font-size:20px;color:var(--accent);letter-spacing:.2em">PROPOSED</div>
+        <h1 class="h1" style="font-size:46px;line-height:1.14;max-width:600px">Non-obvious, testable leads — <span class="em">ranked and evidence-backed.</span></h1>
+        <p style="font-family:var(--mono);font-size:21px;color:var(--muted);line-height:1.5;max-width:30ch">Each scored on <span style="color:var(--accent)">novelty × plausibility × support</span>, then verified against the corpus.</p>
+      </div>
+      <footer class="mark">memex</footer>
+    </div>
+  </section>
+
+  <!-- ============ Two legs, one graph ============ -->
+  <section data-label="Two legs, one graph">
+    <div class="slide">
+      <header class="chrome">
+        <div class="eyebrow"><span class="act">How</span><span class="ttl">Two legs, one graph</span></div>
+        <div class="idx"><b>06</b> / 15</div>
+      </header>
+      <div class="body" style="align-items:center;justify-content:center">
+        <div class="sysrow">
+          <div class="syscol" style="width:316px;height:660px">
+            <div class="sys-h">KNOWLEDGE HARVESTER</div>
+            <div class="sys-sub">source plugins — builds the core</div>
+            <div style="display:flex;flex-direction:column;gap:15px;flex:1;justify-content:center">
+              <div class="plug"><span class="pi">a</span>arXiv</div>
+              <div class="plug"><span class="pi">W</span>Wikipedia</div>
+              <div class="plug"><span class="pi">G</span>GDELT</div>
+              <div class="plug" style="color:var(--muted)"><span class="pi">+</span>… N more</div>
+            </div>
+          </div>
+          <div class="sysarrow">
+            <span class="lab">builds</span>
+            <svg width="78" height="22" viewBox="0 0 78 22"><line x1="2" y1="11" x2="60" y2="11" stroke="#57E6CE" stroke-width="3"/><path d="M58 3 L74 11 L58 19 Z" fill="#57E6CE"/></svg>
+          </div>
+          <div class="syscol" style="width:600px;height:660px">
+            <div class="sys-h" style="text-align:center">STRUCTURED KNOWLEDGE CORE</div>
+            <div class="sys-sub" style="text-align:center">knowledge graph + embeddings</div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:0">
+              <img src="assets/kg-core.png" style="width:540px;height:540px;object-fit:contain;filter:drop-shadow(0 0 56px rgba(87,230,206,.42))" alt="A structured knowledge graph — thousands of typed entities and relations">
+              <div style="text-align:center">
+                <div style="font-family:var(--display);font-weight:600;font-size:25px;color:#fff">Structured Knowledge Store</div>
+                <div style="font-family:var(--mono);font-size:15px;color:var(--muted);margin-top:3px">one knowledge graph per topic · kg.db</div>
+              </div>
+            </div>
+          </div>
+          <div class="sysarrow">
+            <span class="lab">uses</span>
+            <svg width="78" height="22" viewBox="0 0 78 22"><line x1="2" y1="11" x2="60" y2="11" stroke="#57E6CE" stroke-width="3"/><path d="M58 3 L74 11 L58 19 Z" fill="#57E6CE"/></svg>
+          </div>
+          <div class="syscol" style="width:430px;height:660px">
+            <div class="sys-h">QUERY LAYER</div>
+            <div class="sys-sub">multi-agent — uses the core</div>
+            <div style="display:flex;flex-direction:column;gap:20px;flex:1;justify-content:center">
+              <div class="qcard">
+                <img src="assets/agent-flow.jpg" alt="multi-agent flow diagram">
+                <div><div class="qt">Hypothesis Generator</div><div class="qd">seeds → explore → verify → rank → report</div></div>
+              </div>
+              <div class="qcard">
+                <img src="assets/agent-flow.jpg" alt="multi-agent flow diagram">
+                <div><div class="qt">Chat with Knowledge</div><div class="qd">retrieve → answer → grounding-check</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <footer class="mark">memex</footer>
+    </div>
+  </section>
+
+  <!-- ============ The harvester, at a glance ============ -->
+  <section data-label="The harvester, at a glance">
+    <div class="slide" style="padding:60px 64px 40px">
+      <header class="chrome">
+        <div class="eyebrow"><span class="act">How</span><span class="ttl">The harvester — one round, then it decides</span></div>
+        <div class="idx"><b>07</b> / 15</div>
+      </header>
+      <div class="body" style="justify-content:center;align-items:center;margin-top:6px">
+        <img src="assets/harvester-map.jpg" alt="Harvester architecture — User query / goal seeds the RoundPlanner, which ranks topics and rates each source's relevance. One round runs acquire → distil → review: source plugins (arXiv, Wikipedia, throttled GDELT) search and fetch; dedup drops already-ingested docs; a priority-weighted Selector picks; the two-pass UsefulnessGate keeps whole docs; the Extractor writes free-form chunks; Mapper + AttributeMapper produce typed statements; a deterministic FORM + value gate validates, with MappingReviewer re-mapping rejects; the Resolver merges entities, KGReviewer finds structural gaps, the Strategist decides stop or continue, and VocabResolver clusters predicates — all persisted to kg.db, then the next round re-enters the RoundPlanner with seeded goals" style="max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;display:block">
+      </div>
+      <footer class="mark">memex</footer>
+    </div>
+  </section>
+
+  <!-- ============ Part 1 — round review & planning ============ -->
+  <section data-label="Round review &amp; planning">
+    <div class="slide">
+      <div class="s4cards">
+        <!-- column labels -->
+        <div style="position:absolute;left:112px;top:268px;white-space:nowrap;font-family:var(--mono);font-size:22px;color:var(--accent);letter-spacing:.12em">STRATEGIST <span style="color:var(--faint);letter-spacing:.02em">· stop / continue / pivot</span></div>
+        <div style="position:absolute;left:1006px;top:268px;white-space:nowrap;font-family:var(--mono);font-size:22px;color:var(--accent);letter-spacing:.12em">KG REVIEWER <span style="color:var(--faint);letter-spacing:.02em">· finds the gaps</span></div>
+        <!-- strategist pair -->
+        <img class="s4card" src="assets/strat-round11.jpg" alt="Strategist, round 11 — status slowing: new entities still landing but already-seen is high; pivot to under-mined gaps, with per-theme pursue / deprioritize directives" style="left:112px;top:312px;width:600px;height:auto;transform:rotate(-1.4deg)">
+        <img class="s4card" src="assets/strat-round24.jpg" alt="Strategist, round 24 final — status stalled: 100% already-seen with zero new entities or docs; every remaining theme marked abandon and the build halts itself" style="left:236px;top:436px;width:632px;height:auto;transform:rotate(1.4deg);border-color:rgba(87,230,206,.42);box-shadow:0 44px 110px -28px rgba(0,0,0,.97),0 0 0 1px rgba(87,230,206,.14)">
+        <!-- kg reviewer pair -->
+        <img class="s4card" src="assets/kgr-schema.jpg" alt="KGReviewer schema gaps — type inconsistencies in the graph's own ontology, e.g. undefined entity types and disconnected dangling nodes, with suggested fixes" style="left:1006px;top:312px;width:600px;height:auto;transform:rotate(1.4deg)">
+        <img class="s4card" src="assets/kgr-breadth.jpg" alt="KGReviewer breadth gaps — whole subdomains the graph barely covers, such as lifecycle GHG assessment, critical-materials supply chain, and grid services, with new entity and relation types to introduce" style="left:1130px;top:436px;width:632px;height:auto;transform:rotate(-1.4deg);border-color:rgba(87,230,206,.42);box-shadow:0 44px 110px -28px rgba(0,0,0,.97),0 0 0 1px rgba(87,230,206,.14)">
+      </div>
+      <header class="chrome">
+        <div class="eyebrow"><span class="act">How · Part 1</span><span class="ttl">Round review &amp; planning</span></div>
+        <div class="idx"><b>08</b> / 15</div>
+      </header>
+      <div class="body" style="position:relative;z-index:2;flex-direction:column;justify-content:flex-start;align-items:flex-start;gap:0">
+        <h1 class="h1" style="font-size:44px;max-width:34ch;margin-top:32px">The build <span class="em">aims itself</span> — and knows when to <span class="em">stop.</span></h1>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Part 2 — ingestion & source plugins ============ -->
+  <section data-label="Ingestion &amp; source plugins">
+    <div class="slide">
+      <header class="chrome">
+        <div class="eyebrow"><span class="act">How · Part 2</span><span class="ttl">Ingestion &amp; source plugins</span></div>
+        <div class="idx"><b>09</b> / 15</div>
+      </header>
+      <div class="body" style="flex-direction:column;gap:30px;justify-content:center">
+        <h1 class="h1" style="font-size:54px;max-width:26ch">Every source is a <span class="em">plugin</span> — two methods: search, then fetch.</h1>
+        <!-- Step 1 — SEARCH -->
+        <div style="background:var(--bg-alt);border:1px solid var(--line-2);border-radius:18px;padding:26px 34px">
+          <div style="font-family:var(--mono);font-size:18px;color:var(--accent);letter-spacing:.16em;margin-bottom:18px">① SEARCH</div>
+          <div class="flow">
+            <div class="chip">Round Planner<span style="display:block;font-size:14px;color:var(--faint);margin-top:5px">seeds the round plan</span></div>
+            <div class="connl"><span>plan</span><div class="conn"></div></div>
+            <div class="node accent" style="padding:16px 24px">Source plugins<span class="sub">arXiv · Wikipedia · GDELT</span></div>
+            <div class="connl"><span>search</span><div class="conn"></div></div>
+            <div class="chip">Gates<span style="display:block;font-size:14px;color:var(--faint);margin-top:5px">dedup the known</span></div>
+            <div class="connl"><span>results</span><div class="conn"></div></div>
+            <div class="node accent" style="padding:16px 24px">Selector<span class="sub">picks what's worth it</span></div>
+          </div>
+        </div>
+        <!-- Step 2 — FETCH -->
+        <div style="background:var(--bg-alt);border:1px solid var(--line-2);border-radius:18px;padding:26px 34px">
+          <div style="font-family:var(--mono);font-size:18px;color:var(--accent);letter-spacing:.16em;margin-bottom:18px">② FETCH<span style="color:var(--back);margin-left:14px">— Selector calls the plugins back</span></div>
+          <div class="flow">
+            <div class="chip">Selector</div>
+            <div class="connl back"><span>fetch selected</span><div class="conn back"></div></div>
+            <div class="node accent" style="padding:16px 24px">Source plugins<span class="sub">fetch the full docs</span></div>
+            <div class="connl"><span>docs</span><div class="conn"></div></div>
+            <div class="chip">UsefulnessGate<span style="display:block;font-size:14px;color:var(--faint);margin-top:5px">reads each doc whole</span></div>
+            <div class="connl"><span>kept</span><div class="conn"></div></div>
+            <div class="node db" style="padding:16px 24px">Extraction layer</div>
+          </div>
+        </div>
+        <p style="font-family:var(--mono);font-size:20px;color:var(--muted);text-align:center;margin-top:2px">Each plugin sizes its own effort per round — <span style="color:var(--accent)">source expertise × round-goal match.</span></p>
+      </div>
+      <footer class="mark">memex</footer>
+    </div>
+  </section>
+
+  <!-- ============ Part 3 — extraction & mapping ============ -->
+  <section data-label="Extraction &amp; mapping">
+    <div class="slide">
+      <div class="s4cards">
+        <img class="s4card" src="assets/ex-extractor.jpg" alt="Step 1, Extractor — reads each chunk against no schema and pulls the raw claim: anion exchange membrane electrolysis does_not_require a noble metal catalyst" style="left:70px;top:602px;width:548px;height:auto;transform:none">
+        <img class="s4card" src="assets/ex-mapper.jpg" alt="Step 2, Mapper — canonicalizes the predicate into the graph's typed vocabulary as required_for, mapped with confidence 0.90 — but this flips the meaning" style="left:686px;top:648px;width:548px;height:auto;transform:none">
+        <img class="s4card" src="assets/ex-reviewer.jpg" alt="Step 3, MappingReviewer — verdict: direction. The canonical required_for both flips the requirement direction and removes the negation; fix is to restore does_not_require" style="left:1302px;top:602px;width:548px;height:auto;transform:none;border-color:rgba(255,138,91,.5);box-shadow:0 44px 110px -28px rgba(0,0,0,.97),0 0 0 1px rgba(255,138,91,.18)">
+      </div>
+      <!-- arrows overlay -->
+      <svg viewBox="0 0 1920 1080" style="position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none;overflow:visible">
+        <defs>
+          <marker id="tealA" markerWidth="13" markerHeight="13" refX="9" refY="6" orient="auto"><path d="M0 0 L12 6 L0 12 Z" fill="#57E6CE"/></marker>
+          <marker id="ambA" markerWidth="15" markerHeight="15" refX="10" refY="7" orient="auto"><path d="M0 0 L14 7 L0 14 Z" fill="#FF8A5B"/></marker>
+        </defs>
+        <!-- forward: extractor → mapper -->
+        <line x1="624" y1="738" x2="678" y2="744" stroke="#57E6CE" stroke-width="3" marker-end="url(#tealA)"/>
+        <!-- forward: mapper → reviewer -->
+        <line x1="1240" y1="744" x2="1294" y2="740" stroke="#57E6CE" stroke-width="3" marker-end="url(#tealA)"/>
+        <!-- BACK: reviewer → mapper (the point) -->
+        <path d="M1576 598 C 1576 396, 980 360, 962 632" fill="none" stroke="#FF8A5B" stroke-width="6" stroke-linecap="round" marker-end="url(#ambA)"/>
+        <text x="1268" y="372" text-anchor="middle" font-family="IBM Plex Mono" font-size="26" fill="#FF8A5B" font-weight="600">sent back — restore the direction</text>
+      </svg>
+      <header class="chrome">
+        <div class="eyebrow"><span class="act">How · Part 3</span><span class="ttl">Extraction &amp; mapping</span></div>
+        <div class="idx"><b>10</b> / 15</div>
+      </header>
+      <div class="body" style="position:relative;z-index:2;flex-direction:column;justify-content:flex-start;align-items:flex-start;gap:22px">
+        <h1 class="h1" style="font-size:50px;max-width:19ch;margin-top:30px">Free-form becomes typed — then a reviewer <span style="color:var(--back)">sends it back.</span></h1>
+        <p style="font-family:var(--mono);font-size:22px;color:var(--muted);line-height:1.5;max-width:46ch">Not a straight pipeline. The Mapper canonicalized confidently <span style="color:var(--ink)">(0.90)</span> — but flipped the meaning. The <span class="back">MappingReviewer</span> caught it and looped it back to re-map.</p>
+      </div>
+      <footer class="mark">memex</footer>
+    </div>
+  </section>
+
+  <!-- ============ Part 4 — resolving the vocabulary ============ -->
+  <section data-label="Resolving the vocabulary">
+    <div class="slide">
+      <header class="chrome">
+        <div class="eyebrow"><span class="act">How · Part 4</span><span class="ttl">Resolving the vocabulary</span></div>
+        <div class="idx"><b>11</b> / 15</div>
+      </header>
+      <div class="body" style="flex-direction:column;gap:40px;justify-content:center">
+        <h1 class="h1" style="font-size:52px;text-align:center">Merge duplicates. <span class="em">Cluster synonyms.</span></h1>
+        <div style="display:flex;gap:36px;align-items:stretch">
+          <div class="vpanel">
+            <div class="vlabel">RESOLVER <span>· merges duplicate entities</span></div>
+            <div class="vrow">
+              <div class="vforms"><span class="vform">electrolyzer</span><span class="vform">electrolysers</span><span class="vform">water electrolyzer</span><span class="vform">hydrogen electrolyser</span></div>
+              <div class="varrow">→</div>
+              <div class="vcanon">electrolyser</div>
+            </div>
+            <div class="vrow">
+              <div class="vforms"><span class="vform">proton exchange membrane electrolyzer</span><span class="vform">PEM electrolyzer</span><span class="vform">PEM electrolyser</span></div>
+              <div class="varrow">→</div>
+              <div class="vcanon">PEM&nbsp;based&nbsp;electrolyzer</div>
+            </div>
+          </div>
+          <div class="vpanel">
+            <div class="vlabel">VOCABRESOLVER <span>· clusters predicates</span></div>
+            <div class="vrow">
+              <div class="vforms"><span class="vform">produced_using</span><span class="vform">produced_via</span><span class="vform">made_from</span><span class="vform">created_from</span></div>
+              <div class="varrow">→</div>
+              <div class="vcanon">produced_from</div>
+            </div>
+            <div class="vrow">
+              <div class="vforms"><span class="vform">used_for</span><span class="vform">used_as</span><span class="vform">used_with</span><span class="vform">used_on</span></div>
+              <div class="varrow">→</div>
+              <div class="vcanon">used_in</div>
+            </div>
+          </div>
+        </div>
+        <p style="font-family:var(--mono);font-size:21px;color:var(--muted);text-align:center;max-width:74ch;margin:0 auto;line-height:1.5">At query time, asking <span style="color:var(--accent)">produced_from</span> or <span style="color:var(--accent)">used_in</span> reaches <span style="color:var(--ink)">every phrasing and specialization</span> in the graph — never missing an edge stated in different words.</p>
+      </div>
+      <footer class="mark">memex</footer>
+    </div>
+  </section>
+
+  <!-- ============ The query layer, at a glance ============ -->
+  <section data-label="The query layer, at a glance">
+    <div class="slide" style="padding:60px 64px 40px">
+      <header class="chrome">
+        <div class="eyebrow"><span class="act">How</span><span class="ttl">The query layer — two flows, one built graph</span></div>
+        <div class="idx"><b>12</b> / 15</div>
+      </header>
+      <div class="body" style="justify-content:center;align-items:center;margin-top:6px">
+        <img src="assets/query-map.jpg" alt="Query layer architecture, read-only over the built kg.db (typed graph + embeddings + provenance). CHAT — grounded Q&A: a question goes to a tool-using Retriever (ReAct), through a deterministic grounding ladder mapping fact to source, to the Answerer, then a GroundingChecker that sends unsupported claims back to revise, producing a grounded answer with citations. HYPOTHESIZE — focused agentic sweep: seeds across five lanes pass a ContestationJudge genuine-conflict gate, are ranked for explore-worthiness to top-K, an Explorer reads sources and traces the graph, a restatement pre-filter and per-candidate VerifyEvidence fan-out reject unsupported candidates, a NoveltyJudge scores novelty × plausibility × support × graph-dependence, then ReportWriter and FinalReviewer (which can send issues back to revise) produce a hypothesis report with citations. Agents are rounded boxes, deterministic toolboxes and gates are amber hexagons, stores are cylinders." style="max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;display:block">
+      </div>
+      <footer class="mark">memex</footer>
+    </div>
+  </section>
+
+  <!-- ============ Flow 1 — grounded chat ============ -->
+  <section data-label="Flow 1 — grounded chat">
+    <div class="slide">
+      <!-- cards -->
+      <div style="position:absolute;inset:0;z-index:1">
+        <div class="tpanel" style="position:absolute;left:112px;top:556px;width:520px">
+          <div class="thead"><div class="ttitle">1 · Retriever</div><div class="ttag">ReAct · 11 tool calls</div></div>
+          <div class="tsub">Decides its own lookups — decomposes the question and drills in.</div>
+          <div class="tcode"><b>search_facts</b> "drivers of LCOH — capex, efficiency, electricity price…"<br><b>search_facts</b> "what's contested — assumptions, lifetime, capacity factor…"<br><b>search_facts</b> "\"capacity factor\" → LCOH"</div>
+          <div class="tnote">broad framing → contested angle → one probe per driver</div>
+        </div>
+        <div class="tpanel" style="position:absolute;left:692px;top:556px;width:520px">
+          <div class="thead"><div class="ttitle">2 · Answerer</div><div class="ttag">cites every [n]</div></div>
+          <div class="tsub">Writes strictly from the retrieved bundle — every claim carries a citation.</div>
+          <div class="tbig">28<span class="u"> claims cited</span></div>
+          <div class="tnote">+ an explicit “not in corpus” list for what evidence can’t support</div>
+        </div>
+        <div class="tpanel money" style="position:absolute;left:1272px;top:556px;width:520px">
+          <div class="thead"><div class="ttitle">3 · GroundingChecker</div><div class="ttag">re-reads all 28</div></div>
+          <div class="tsub">Adversarial re-read of every claim against its cited evidence.</div>
+          <div class="tbig bk"><span class="n">6</span><span class="u" style="color:var(--back)"> fail — sent back</span></div>
+          <div class="tverd"><span class="x">claim 5 ✗</span> evidence [10] shows <b style="color:var(--ink)">50 $/MWh, not 20–50</b> — the lower bound isn’t in the bundle <span style="color:var(--faint)">(invented number)</span></div>
+        </div>
+      </div>
+      <!-- arrows -->
+      <svg viewBox="0 0 1920 1080" style="position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none;overflow:visible">
+        <defs>
+          <marker id="tealB" markerWidth="13" markerHeight="13" refX="9" refY="6" orient="auto"><path d="M0 0 L12 6 L0 12 Z" fill="#57E6CE"/></marker>
+          <marker id="ambB" markerWidth="15" markerHeight="15" refX="10" refY="7" orient="auto"><path d="M0 0 L14 7 L0 14 Z" fill="#FF8A5B"/></marker>
+        </defs>
+        <line x1="636" y1="690" x2="688" y2="690" stroke="#57E6CE" stroke-width="3" marker-end="url(#tealB)"/>
+        <line x1="1216" y1="690" x2="1268" y2="690" stroke="#57E6CE" stroke-width="3" marker-end="url(#tealB)"/>
+        <path d="M1532 552 C 1532 392, 956 388, 952 548" fill="none" stroke="#FF8A5B" stroke-width="6" stroke-linecap="round" marker-end="url(#ambB)"/>
+        <text x="1244" y="366" text-anchor="middle" font-family="IBM Plex Mono" font-size="24" fill="#FF8A5B" font-weight="600">unsupported — back to the Answerer</text>
+      </svg>
+      <header class="chrome">
+        <div class="eyebrow"><span class="act">How · Flow 1</span><span class="ttl">Grounded chat</span></div>
+        <div class="idx"><b>13</b> / 15</div>
+      </header>
+      <div class="body" style="position:relative;z-index:2;flex-direction:column;justify-content:flex-start;align-items:flex-start;gap:22px">
+        <h1 class="h1" style="font-size:50px;max-width:20ch;margin-top:30px">Every claim cited — then <span style="color:var(--back)">re-read, and sent back.</span></h1>
+        <p style="font-family:var(--mono);font-size:21px;color:var(--muted);line-height:1.5;max-width:52ch">Not a straight line. The GroundingChecker’s re-read loops back to the Answerer, which redrafts to <span style="color:var(--ink)">34 claims · 3 declared gaps</span> — so every cited claim is actually <span style="color:var(--accent)">supported.</span></p>
+      </div>
+      <footer class="mark">memex</footer>
+    </div>
+  </section>
+
+  <!-- ============ Flow 2 — hypothesis sweep ============ -->
+  <section data-label="Flow 2 — hypothesis sweep">
+    <div class="slide">
+      <!-- cards -->
+      <div style="position:absolute;inset:0;z-index:1">
+        <div class="tpanel" style="position:absolute;left:112px;top:560px;width:388px">
+          <div class="thead"><div class="ttitle">1 · Seeds</div><div class="ttag">deterministic</div></div>
+          <div class="tsub">Structural patterns mined from the graph — no free-roaming.</div>
+          <div class="tnote" style="font-size:15px;line-height:1.9"><span style="color:var(--accent)">bridge</span> · <span style="color:var(--accent)">gap</span> · <span style="color:var(--accent)">property</span> · <span style="color:var(--accent)">contested</span><br>each seed carries its own grounded legs</div>
+        </div>
+        <div class="tpanel" style="position:absolute;left:544px;top:560px;width:388px">
+          <div class="thead"><div class="ttitle">2 · Explorer</div><div class="ttag">reads source prose</div></div>
+          <div class="tsub">Reasons from the verbatim text behind each fact.</div>
+          <div class="tverd" style="color:var(--ink)">bridge → run steel <span style="color:var(--accent)">OER anodes</span> on <span style="color:var(--accent)">acid-mine drainage</span>: make H₂ <i>and</i> remediate the effluent</div>
+          <div class="trej"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 3 L13 13 M13 3 L3 13" stroke="#FF8A5B" stroke-width="2.2" stroke-linecap="round"/></svg><span>bails on a fake-contested seed — time-separated snapshots, no real conflict</span></div>
+        </div>
+        <div class="tpanel money" style="position:absolute;left:976px;top:560px;width:388px">
+          <div class="thead"><div class="ttitle">3 · VerifyEvidence</div><div class="ttag">1 call / candidate</div></div>
+          <div class="tsub">Adversarial re-read of every load-bearing leg against its source.</div>
+          <div class="trej"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 3 L13 13 M13 3 L3 13" stroke="#FF8A5B" stroke-width="2.2" stroke-linecap="round"/></svg><span><b style="color:var(--back)">catalyst hypothesis ✗</b> — 9 legs rely on details not in the source prose. <b style="color:var(--back)">holds: false</b></span></div>
+        </div>
+        <div class="tpanel" style="position:absolute;left:1408px;top:560px;width:388px">
+          <div class="thead"><div class="ttitle">4 · Ranked</div><div class="ttag">survivors</div></div>
+          <div class="tsub">What’s left is scored deterministically.</div>
+          <div style="font-family:var(--mono);font-size:20px;color:var(--accent);font-weight:500">H1 · 0.89</div>
+          <div class="tscore">Acid-mine drainage as electrolyte &amp; remediation<br>novelty <b>0.90</b> · plausibility <b>0.74</b> · support <b>0.92</b> · structure <b>1.00</b></div>
+        </div>
+      </div>
+      <!-- arrows -->
+      <svg viewBox="0 0 1920 1080" style="position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none;overflow:visible">
+        <defs><marker id="tealC" markerWidth="13" markerHeight="13" refX="9" refY="6" orient="auto"><path d="M0 0 L12 6 L0 12 Z" fill="#57E6CE"/></marker></defs>
+        <line x1="504" y1="700" x2="540" y2="700" stroke="#57E6CE" stroke-width="3" marker-end="url(#tealC)"/>
+        <line x1="936" y1="700" x2="972" y2="700" stroke="#57E6CE" stroke-width="3" marker-end="url(#tealC)"/>
+        <line x1="1368" y1="700" x2="1404" y2="700" stroke="#57E6CE" stroke-width="3" marker-end="url(#tealC)"/>
+      </svg>
+      <header class="chrome">
+        <div class="eyebrow"><span class="act">How · Flow 2</span><span class="ttl">Hypothesis sweep</span></div>
+        <div class="idx"><b>14</b> / 15</div>
+      </header>
+      <div class="body" style="position:relative;z-index:2;flex-direction:column;justify-content:flex-start;align-items:flex-start;gap:22px">
+        <h1 class="h1" style="font-size:50px;max-width:24ch;margin-top:30px">A focused sweep — and duds get <span style="color:var(--back)">rejected twice.</span></h1>
+        <p style="font-family:var(--mono);font-size:21px;color:var(--muted);line-height:1.5;max-width:58ch">Two agents reading the real prose throw work out: the <span class="back">Explorer</span> bails on fake-contested seeds, and <span class="back">VerifyEvidence</span> kills any candidate whose premises aren’t in the sources. Only genuinely grounded leads <span style="color:var(--accent)">survive to the report.</span></p>
+      </div>
+      <footer class="mark">memex</footer>
+    </div>
+  </section>
+
+  <!-- ============ The mountain, finally walkable ============ -->
+  <section data-label="The mountain, finally walkable">
+    <div class="slide bleed">
+      <img class="s1img" src="assets/close-walkable.jpg" alt="A researcher at the memex interface — walking associative trails across a living knowledge graph, with linked insights, smart search and hypotheses around them">
+      <div class="s1scrim" style="background:linear-gradient(to bottom, rgba(8,11,17,.55) 0%, rgba(8,11,17,.32) 30%, rgba(8,11,17,.6) 64%, rgba(8,11,17,.92) 100%), linear-gradient(to right, rgba(8,11,17,.78) 0%, rgba(8,11,17,.35) 42%, rgba(8,11,17,.5) 100%)"></div>
+      <header class="chrome">
+        <div class="eyebrow" style="text-shadow:0 2px 12px rgba(0,0,0,.85)"><span class="act">Close</span><span class="ttl">The mountain, finally walkable</span></div>
+        <div class="idx" style="text-shadow:0 2px 12px rgba(0,0,0,.85)"><b>15</b> / 15</div>
+      </header>
+      <div class="body" style="flex-direction:column;justify-content:flex-end;align-items:flex-start;gap:46px;text-shadow:0 2px 20px rgba(0,0,0,.92)">
+        <h1 class="h1" style="font-size:60px;max-width:24ch">It reads, connects, and reasons. <span class="em">That’s memex.</span></h1>
+        <div style="display:flex;gap:96px">
+          <div style="flex:1">
+            <div style="font-family:var(--mono);font-size:20px;color:var(--faint);letter-spacing:.14em;margin-bottom:18px">TODAY — HONEST ABOUT IT</div>
+            <p style="font-size:28px;color:var(--muted);line-height:1.4;max-width:26ch">A single self-built graph on one topic, with rough edges we don’t hide.</p>
+          </div>
+          <div style="flex:1">
+            <div style="font-family:var(--mono);font-size:20px;color:var(--accent);letter-spacing:.14em;margin-bottom:18px">NEXT — THE HUMAN IN THE LOOP</div>
+            <p style="font-size:28px;color:var(--ink);line-height:1.4;max-width:28ch">Bring your own documents, and steer which <span class="em">trails</span> it walks and which <span class="em">hypotheses</span> it chases — now alongside you.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</deck-stage>
+
+<script type="application/json" id="speaker-notes">
+[
+  "In 1945, one man imagined memex. Vannevar Bush had run America's wartime science — and he could already see the problem coming.",
+  "Researchers were already drowning in a growing mountain of findings — more than anyone could ever read. Bush dreamed of a machine that would hold all of it and let you walk associative trails through it. He never built it. Eighty years on, the mountain keeps growing — and we finally can.",
+  "memex reads a corpus and builds itself a knowledge graph. Point it at a topic and it harvests until it's saturated — here, eighty-eight documents became eleven thousand connected entities, over twenty-four rounds it ran on its own.",
+  "Then you can simply ask it questions — and every answer is grounded, citing the exact facts and the source sentences it's built from. Nothing invented.",
+  "And it goes further: it proposes its own hypotheses — non-obvious, testable leads a researcher could actually chase, each one backed by evidence from the corpus.",
+  "So how? memex stands on two legs over one graph: a self-calibrating harvester that builds it, and a query layer that reasons over it. Both are made of cooperating agents.",
+  "The harvester works in rounds — agents plan what to read, search several sources, vet and extract each document, and map it into typed statements. Nobody hands it a reading list or tells it when to stop; it judges its own gaps and runs until the topic is saturated.",
+  "Two agents steer it: a KGReviewer reports where the graph is still thin, and a Strategist reads the trend across rounds, abandons themes that keep coming up empty, and directs the next round — so the build aims itself, and knows when to halt.",
+  "Every source is a plugin — arXiv, Wikipedia, GDELT news — each speaking its own query dialect. A dedup gate drops what's already known, a Selector picks what's worth the cost, and a UsefulnessGate reads each document whole before it's let in.",
+  "Then meaning. An Extractor pulls every claim in free form; two mappers structure it — one for relationships, one for measured properties, keeping number, unit, and condition in their own lane so '491 millivolts' never becomes a node. And it self-critiques: the MappingReviewer catches a flipped direction and sends those statements back to be redone.",
+  "Finally it merges duplicates — 'green hydrogen' and 'green H₂' become one entity across the whole graph — and clusters synonymous predicates, so the query layer can expand them later.",
+  "The finished graph is a single SQLite file. The query layer runs read-only over it, through thin agents calling a deterministic toolbox of symbolic, semantic, and topological retrieval — agents judge, code does the graph math.",
+  "In chat, a tool-using Retriever decides its own lookups; the Answerer writes only from what it found, citing every claim; and a GroundingChecker re-reads each one — forcing a rewrite when a claim isn't supported. Here, an unsupported claim sends the answer back.",
+  "Hypothesize is a focused, agentic sweep. Deterministic seeds — bridges between distant topics, gaps, contested values — bound the search. An Explorer investigates the best ones, reading the actual source sentences before forming a claim, or bailing on a dud. Survivors are adversarially verified, the duds rejected, and the rest ranked and written up as leads.",
+  "memex isn't finished. Today it's a single self-built graph on one topic — honest about its rough edges. Next comes the human in the loop, as Bush imagined: bring your own documents, and steer which trails it walks and which hypotheses it chases. Eighty years on, his memex finally reads, connects, and reasons — now alongside you. That's memex."
+]
+</script>
+
+<template id="__bundler_thumbnail" data-bg-color="#0A0E15">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#0A0E15"/>
+    <g stroke="#2E9C90" stroke-width="3" opacity="0.7">
+      <line x1="600" y1="400" x2="430" y2="280"/>
+      <line x1="600" y1="400" x2="770" y2="280"/>
+      <line x1="600" y1="400" x2="420" y2="520"/>
+      <line x1="600" y1="400" x2="780" y2="520"/>
+      <line x1="430" y1="280" x2="770" y2="280"/>
+      <line x1="420" y1="520" x2="780" y2="520"/>
+    </g>
+    <g fill="#57E6CE">
+      <circle cx="600" cy="400" r="34"/>
+      <circle cx="430" cy="280" r="20"/>
+      <circle cx="770" cy="280" r="20"/>
+      <circle cx="420" cy="520" r="20"/>
+      <circle cx="780" cy="520" r="20"/>
+    </g>
+    <text x="600" y="650" text-anchor="middle" font-family="Space Grotesk, sans-serif" font-size="72" font-weight="700" fill="#EAF0F8">memex</text>
+  </svg>
+</template>
+
+<script src="deck-stage.js"></script>
+</body>
+</html>

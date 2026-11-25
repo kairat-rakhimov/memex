@@ -1,0 +1,54 @@
+<!-- Graph view -->
+<div id="graph-view" x-show="state.middleView === 'graph'" class="flex flex-col flex-1 min-h-0 bg-white">
+  <div class="px-3 py-2 border-b flex items-center gap-2 text-[11px] flex-wrap">
+    <label class="text-slate-500">min mentions</label>
+    <input
+      type="number" min="1" max="50"
+      x-model.number="state.graph.minMentions"
+      @change="loadGraph()"
+      class="w-12 border border-slate-300 rounded px-1 py-0.5"
+    />
+    <label class="text-slate-500 ml-2">entity type</label>
+    <select
+      x-model="state.graph.entityType"
+      @change="loadGraph()"
+      class="border border-slate-300 rounded px-1 py-0.5"
+    >
+      <option value="">all</option>
+      <template x-for="t in state.graph.types" :key="t.entity_type || '__null__'">
+        <option :value="t.entity_type" x-text="(t.entity_type || '(none)') + ' (' + t.n + ')'"></option>
+      </template>
+    </select>
+    <label class="text-slate-500 ml-2">limit</label>
+    <input
+      type="number" min="50" max="2000" step="50"
+      x-model.number="state.graph.limitNodes"
+      @change="loadGraph()"
+      class="w-16 border border-slate-300 rounded px-1 py-0.5"
+    />
+    <label class="text-slate-500 ml-2 flex items-center gap-1">
+      <input
+        type="checkbox"
+        x-model="state.graph.includeIsolated"
+        @change="loadGraph()"
+      />
+      isolated
+    </label>
+    <div class="flex-1"></div>
+    <span class="text-slate-500" x-text="state.graph.nodeCount + ' nodes · ' + state.graph.edgeCount + ' edges'"></span>
+    <button @click="loadGraph()" class="px-2 py-0.5 rounded bg-slate-200 hover:bg-slate-300">reload</button>
+    <button @click="fitGraph()" class="px-2 py-0.5 rounded bg-slate-200 hover:bg-slate-300">fit</button>
+    <button @click="toggleGraphFullscreen()" class="px-2 py-0.5 rounded bg-slate-200 hover:bg-slate-300" title="expand to full screen" x-text="state.graph.fullscreen ? '⤢ exit' : '⛶ full screen'">⛶ full screen</button>
+  </div>
+  <div class="relative flex-1 min-h-0">
+    <div id="graph-canvas"></div>
+    <div
+      x-show="state.graph.loading"
+      class="absolute inset-0 flex items-center justify-center text-slate-500 text-xs bg-white/60"
+    >loading graph…</div>
+    <div
+      x-show="!state.graph.loading && state.graph.nodeCount === 0"
+      class="absolute inset-0 flex items-center justify-center text-slate-400 text-xs"
+    >No entities meet the filter — try lowering "min mentions" or enabling isolated.</div>
+  </div>
+</div>

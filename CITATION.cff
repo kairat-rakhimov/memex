@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+message: "If you use memex, please cite it as below."
+title: "memex: multi-agent knowledge graphs for hypothesis generation"
+type: software
+authors:
+  - family-names: Rakhimov
+    given-names: Kairat
+repository-code: "https://github.com/kairat-rakhimov/memex"
+license: MIT
+date-released: "2026-11-26"
+version: "0.1.0"
+keywords:
+  - knowledge graph
+  - multi-agent
+  - hypothesis generation
+  - LLM

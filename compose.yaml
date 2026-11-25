@@ -1,0 +1,30 @@
+# Optional GROBID server for section-aware arXiv PDF parsing. See docs/grobid.md.
+#
+#   docker compose up -d grobid                      # CPU, CRF models (default)
+#   docker compose --profile gpu up -d grobid-gpu    # NVIDIA GPU, deep-learning models
+#
+# Then set MEMEX_GROBID_URL=http://localhost:8070 before `memex build`.
+
+services:
+  grobid:
+    image: grobid/grobid:0.9.1-crf
+    ports:
+      - "8070:8070"
+    restart: unless-stopped
+
+  grobid-gpu:
+    profiles: ["gpu"]
+    image: grobid/grobid:0.9.1-full
+    ports:
+      - "8070:8070"
+    environment:
+      # Without this TensorFlow reserves nearly all GPU memory up front.
+      TF_FORCE_GPU_ALLOW_GROWTH: "true"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped

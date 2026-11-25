@@ -1,0 +1,67 @@
+/* Theme palette for the build trace UI.
+   Loaded after Tailwind (vendored) so it wins on source order; `!important`
+   guards against Tailwind's runtime style injection landing later. The UI's
+   templates keep their Tailwind utility classes untouched — this file just
+   remaps the colour utilities they use onto the theme tokens. */
+:root {
+  --bg: #0A0E15; --bg-alt: #0C111B; --surface: #131B29; --surface-2: #172234;
+  --ink: #EAF0F8; --muted: #8C9AB0; --faint: #5E6B80;
+  --accent: #57E6CE; --accent-dim: #2E9C90; --accent-deep: rgba(87,230,206,.12);
+  --back: #FF8A5B;
+  --line: rgba(120,150,190,.18); --line-2: rgba(120,150,190,.10); --line-strong: rgba(120,150,190,.30);
+  --ok: #34D399; --warn: #FBBF24; --err: #FB7185;
+}
+
+html, body { background-color: var(--bg) !important; color: var(--ink) !important; }
+::selection { background: var(--accent-deep); }
+*, ::before, ::after { border-color: var(--line) !important; }
+
+/* surfaces */
+.bg-white { background-color: var(--surface) !important; }
+.bg-slate-50 { background-color: var(--bg-alt) !important; }
+.bg-slate-100 { background-color: var(--surface-2) !important; }
+.bg-slate-200 { background-color: var(--surface-2) !important; }
+.bg-slate-700 { background-color: var(--surface-2) !important; }
+.bg-slate-800 { background-color: var(--surface) !important; }
+.bg-slate-900 { background-color: var(--bg) !important; }
+.bg-slate-50\/30, .bg-slate-50\/50, .bg-slate-50\/60 { background-color: rgba(19,27,41,.5) !important; }
+.bg-white\/60 { background-color: rgba(10,14,21,.6) !important; }
+
+/* hovers */
+.hover\:bg-slate-50:hover { background-color: var(--surface) !important; }
+.hover\:bg-slate-200:hover, .hover\:bg-slate-300:hover, .hover\:bg-slate-600:hover { background-color: #1F2C42 !important; }
+.hover\:bg-white\/60:hover { background-color: rgba(10,14,21,.6) !important; }
+.hover\:text-slate-700:hover { color: var(--ink) !important; }
+
+/* text */
+.text-slate-900 { color: var(--ink) !important; }
+.text-slate-700 { color: #C9D4E2 !important; }
+.text-slate-600 { color: #A7B4C8 !important; }
+.text-slate-500 { color: var(--muted) !important; }
+.text-slate-400 { color: #6E7C92 !important; }
+.text-slate-100 { color: var(--ink) !important; }
+
+/* borders / dividers */
+.border-slate-200 { border-color: var(--line) !important; }
+.border-slate-300 { border-color: var(--line-strong) !important; }
+.divide-slate-100 > :not([hidden]) ~ :not([hidden]) { border-color: var(--line-2) !important; }
+
+/* accent: indigo -> teal */
+.text-indigo-600, .text-indigo-700, .text-indigo-900 { color: var(--accent) !important; }
+.bg-indigo-50, .bg-indigo-50\/50, .bg-indigo-50\/60 { background-color: var(--accent-deep) !important; }
+.border-indigo-100, .border-indigo-500 { border-color: var(--accent-dim) !important; }
+
+/* functional status (tuned for dark) */
+.text-emerald-600 { color: var(--ok) !important; }
+.text-amber-600, .text-amber-700 { color: var(--warn) !important; }
+.bg-amber-50\/50 { background-color: rgba(251,191,36,.12) !important; }
+.text-rose-600, .text-rose-700, .text-rose-900 { color: var(--err) !important; }
+.bg-rose-50 { background-color: rgba(251,113,133,.12) !important; }
+.border-rose-200 { border-color: rgba(251,113,133,.35) !important; }
+
+/* form controls */
+input, select, textarea { background-color: var(--surface) !important; color: var(--ink) !important; border-color: var(--line-strong) !important; }
+option { background-color: var(--surface) !important; color: var(--ink) !important; }
+
+/* graph canvas (vis-network draws on top; node label colours set in graph.js) */
+#graph-canvas { background: var(--bg-alt) !important; }

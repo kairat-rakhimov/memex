@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>memex — kg-loop trace UI</title>
+    <script>window.API_BASE = "__API_BASE__";</script>
+    <!-- All deps vendored under /static/vendor/ so the UI works offline,
+         is pinned to a known version, and doesn't depend on unpkg /
+         tailwindcss.com being reachable. Originals:
+           - Tailwind:   https://cdn.tailwindcss.com (runtime JIT)
+           - Alpine:     https://unpkg.com/alpinejs@3.14.9/dist/cdn.min.js
+           - vis-network: https://unpkg.com/vis-network@9.1.9 (umd + css) -->
+    <script src="/static/vendor/tailwindcss.min.js"></script>
+    <!-- JS module load order: helpers + lens loaders + graph + app entry.
+         Each file is a classic script (no ES modules) so loading is
+         strictly sequential. app.js MUST load before Alpine: it registers
+         the `alpine:init` listener that calls Alpine.data("traceUI", ...).
+         If Alpine runs first under `defer`, document.readyState is already
+         'interactive' so Alpine.start() fires alpine:init synchronously
+         before our listener has a chance to register. -->
+    <script src="/static/js/formatters.js"></script>
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/mutations.js"></script>
+    <script src="/static/js/graph.js"></script>
+    <script src="/static/js/app.js"></script>
+    <script defer src="/static/vendor/alpinejs.min.js"></script>
+    <script src="/static/vendor/vis-network.min.js"></script>
+    <link rel="stylesheet" href="/static/vendor/vis-network.min.css" />
+    <!-- theme palette; loaded last so it wins over Tailwind utilities -->
+    <link rel="stylesheet" href="/static/css/theme.css" />
+    <style>
+      [x-cloak] { display: none !important; }
+      pre.wrap { white-space: pre-wrap; word-break: break-word; }
+      .scroll-y { max-height: calc(100vh - 7rem); overflow-y: auto; }
+      #graph-canvas { width: 100%; height: 100%; background: #fafafa; }
+    </style>
+  </head>
+  <body class="bg-slate-50 text-slate-900 font-sans antialiased h-screen flex flex-col overflow-hidden">
+    __NAV__
+    <div x-data="traceUI" x-init="bootstrap()" x-cloak class="flex-1 min-h-0 flex flex-col">
+      <!-- top bar -->
+      <header class="bg-slate-900 text-slate-100 px-4 py-2 flex items-center gap-4 shrink-0">
+        <h1 class="text-lg font-semibold">memex — kg-loop trace UI</h1>
+        <div class="text-xs text-slate-400" x-text="state.kgRoot"></div>
+        <div class="flex-1"></div>
+        <label class="text-xs text-slate-400">kg_id</label>
+        <select
+          x-model="state.kgId"
+          @change="onKgIdChange()"
+          class="bg-slate-800 text-slate-100 text-sm rounded px-2 py-1"
+        >
+          <template x-for="id in state.kgIds" :key="id">
+            <option :value="id" x-text="id"></option>
+          </template>
+        </select>
+        <button
+          @click="bootstrap()"
+          class="text-xs bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded"
+        >
+          reload
+        </button>
+      </header>
+
+      <!-- three-pane body -->
+      <div class="flex-1 grid grid-cols-12 gap-2 p-2 min-h-0">
+        {% include "partials/_left.html" %}
+
+        <!-- MIDDLE: round detail / build overview / graph -->
+        <section class="col-span-5 bg-white rounded shadow-sm flex flex-col min-h-0">
+          <div class="px-3 py-2 border-b flex items-center gap-3">
+            <div class="text-xs font-semibold uppercase text-slate-500"
+                 x-text="middleTitle()"></div>
+            <div class="flex-1"></div>
+            <!-- view toggle: overview / graph. Round-detail + failures are
+                 sub-views of 'overview'; graph is a peer top-level view. -->
+            <div x-show="state.buildId" class="flex gap-1 text-[11px]">
+              <button
+                @click="setMiddleView('overview')"
+                :class="state.middleView === 'overview' ? 'bg-slate-200 text-slate-900' : 'text-slate-500 hover:text-slate-700'"
+                class="px-2 py-0.5 rounded"
+              >overview</button>
+              <button
+                @click="setMiddleView('graph')"
+                :class="state.middleView === 'graph' ? 'bg-slate-200 text-slate-900' : 'text-slate-500 hover:text-slate-700'"
+                class="px-2 py-0.5 rounded"
+              >graph</button>
+            </div>
+            <button
+              x-show="state.buildId && state.middleView === 'overview'"
+              @click="loadFailures()"
+              class="text-[11px] text-rose-600 hover:underline"
+            >failures</button>
+          </div>
+
+          {% include "partials/_middle_overview.html" %}
+          {% include "partials/_middle_round_detail.html" %}
+          {% include "partials/_middle_failures.html" %}
+          {% include "partials/_middle_graph.html" %}
+        </section>
+
+        <!-- RIGHT: agent call detail / entity detail -->
+        <section class="col-span-4 bg-white rounded shadow-sm flex flex-col min-h-0">
+          <div class="px-3 py-2 border-b text-xs font-semibold uppercase text-slate-500 flex items-center gap-2">
+            <span x-show="state.rightView === 'call' && state.call">agent_call #<span x-text="state.call?.id"></span> · <span x-text="state.call?.agent_name + '.' + state.call?.action"></span></span>
+            <span x-show="state.rightView === 'entity' && state.entity" x-text="'entity · ' + (state.entity?.canonical_name || '')"></span>
+            <span x-show="state.rightView === 'relation' && state.relation">relation · <span class="font-mono normal-case" x-text="state.relation?.predicate"></span></span>
+            <span x-show="state.rightView === 'empty' || (!state.call && !state.entity && !state.relation)" class="text-slate-400">select an agent call or graph node</span>
+          </div>
+
+          {% include "partials/_right_entity.html" %}
+          {% include "partials/_right_call.html" %}
+          {% include "partials/_right_relation.html" %}
+        </section>
+      </div>
+    </div>
+  </body>
+</html>

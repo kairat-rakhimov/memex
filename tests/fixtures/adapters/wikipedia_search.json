@@ -1,0 +1,27 @@
+{
+  "batchcomplete": "",
+  "continue": {"sroffset": 10, "continue": "-||"},
+  "query": {
+    "searchinfo": {"totalhits": 42},
+    "search": [
+      {
+        "ns": 0,
+        "title": "Hydrogen economy",
+        "pageid": 12345,
+        "size": 50000,
+        "wordcount": 8000,
+        "snippet": "The <span class=\"searchmatch\">hydrogen</span> <span class=\"searchmatch\">economy</span> refers to using hydrogen as fuel...",
+        "timestamp": "2026-01-15T10:00:00Z"
+      },
+      {
+        "ns": 0,
+        "title": "Electrolysis of water",
+        "pageid": 23456,
+        "size": 30000,
+        "wordcount": 5000,
+        "snippet": "<span class=\"searchmatch\">Electrolysis</span> of water is decomposition...",
+        "timestamp": "2026-02-20T12:00:00Z"
+      }
+    ]
+  }
+}
